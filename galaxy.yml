@@ -1,0 +1,20 @@
+---
+namespace: nephelaiio
+name: rke
+version: 0.1.0
+readme: README.md
+authors:
+  - Ted Cook <teodoro.cook@gmail.com>
+description: RKE collection
+license:
+  - MIT
+tags:
+  - k8s
+  - rke
+dependencies:
+  "nephelaiio.plugins": "*"
+repository: http://github.com/nephelaiio/ansible-collection-rke
+documentation: http://github.com/nephelaiio/ansible-collection-rke
+homepage: http://github.com/nephelaiio/ansible-collection-rke
+issues: http://github.com/nephelaiio/ansible-collection-rke/issues
+build_ignore: []

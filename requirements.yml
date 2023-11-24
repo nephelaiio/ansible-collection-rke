@@ -1,0 +1,7 @@
+---
+roles: []
+collections:
+  - name: nephelaiio.rke
+    source: .
+    type: dir
+  - name: nephelaiio.plugins
