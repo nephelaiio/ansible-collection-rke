@@ -5,7 +5,7 @@ dependency:
     role-file: requirements.yml
     requirements-file: requirements.yml
 driver:
-  name: delegated
+  name: default
 platforms:
   - name: rke-install-control01
     image: "${MOLECULE_KVM_IMAGE}"
@@ -40,14 +40,16 @@ platforms:
 provisioner:
   name: ansible
   playbooks:
-    create: ../common/create.yml
-    prepare: ../common/prepare.yml
+    create: ../common/networking.yml
+    prepare: ../common/guests.yml
     converge: ../common/install.yml
+    destroy: ../common/destroy.yml
     side_effect: ../common/install.yml
     verify: ../common/verify.yml
   config_options:
     defaults:
       callbacks_enabled: ansible.posix.profile_tasks
+      callback_whitelist: profile_tasks, timer, yaml
 verifier:
   name: ansible
 scenario:

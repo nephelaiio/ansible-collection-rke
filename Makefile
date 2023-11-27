@@ -1,7 +1,7 @@
 .PHONY: all ${MAKECMDGOALS}
 
 MOLECULE_SCENARIO ?= install
-MOLECULE_KVM_IMAGE ?= "https://cloud-images.ubuntu.com/daily/server/jammy/current/jammy-server-cloudimg-amd64.img"
+MOLECULE_KVM_IMAGE ?= https://cloud-images.ubuntu.com/daily/server/jammy/current/jammy-server-cloudimg-amd64.img
 GALAXY_API_KEY ?=
 GITHUB_REPOSITORY ?= $$(git config --get remote.origin.url | cut -d: -f 2 | cut -d. -f 1)
 GITHUB_ORG = $$(echo ${GITHUB_REPOSITORY} | cut -d/ -f 1)

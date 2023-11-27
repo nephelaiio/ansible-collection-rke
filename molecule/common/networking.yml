@@ -1,0 +1,80 @@
+---
+- name: Configure KVM networking
+  hosts: localhost
+  become: true
+  vars:
+    _project: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+    _scenario: "{{ lookup('ansible.builtin.env', 'MOLECULE_SCENARIO_NAME') }}"
+    _namespace: "{{ _project | regex_replace('^.*\\.', '') }}-{{ _scenario }}"
+    _iface: "{{ _namespace }}-0"
+    _bridge: "{{ _namespace }}-br0"
+    _iffile: "/sys/class/net/{{ _iface }}"
+    _brfile: "/sys/class/net/{{ _bridge }}"
+    _nsfile: "/run/netns/{{ _namespace }}"
+    _net: "192.168.0.0/24"
+    _addr: "{{ _net }}"
+  tasks:
+    - name: Install KVM requirements
+      ansible.builtin.apt:
+        name:
+          - qemu
+          - qemu-kvm
+          - qemu-efi
+          - libvirt-clients
+          - libvirt-daemon-system
+          - libvirt-daemon-system-systemd
+          - python3-libvirt
+      when: ansible_os_family == 'Debian'
+
+    - name: Debug scenario networking
+      ansible.builtin.debug:
+        msg: "Creating namespace={{ _namespace }} bridge={{ _bridge }} interface={{ _iface }}"
+
+    - name: Create network namespace
+      ansible.builtin.command: "ip netns add {{ _namespace }}"
+      args:
+        creates: "{{ _nsfile }}"
+
+    - name: Create dummy bridge
+      ansible.builtin.command: "ip link add {{ _bridge }} type bridge"
+      args:
+        creates: "{{ _brfile }}"
+
+    - name: Create dummy interface
+      ansible.builtin.command: "ip link add {{ _iface }} type dummy"
+      args:
+        creates: "{{ _iffile }}"
+
+    - name: Move dummy interface to network namespace
+      ansible.builtin.shell: "link set {{ _iface }} netns {{ _namespace }}"
+      failed_when: false
+
+    - name: Create dummy bridge slave
+      ansible.builtin.command: "ip link set {{ _iface }} master {{ _bridge }}"
+      failed_when: false
+
+    - name: Set bridge interface ip address
+      ansible.builtin.command: "ip netns {{ _namespace }} ip addr add {{ _net | ansible.utils.ipaddr('1') }} dev {{ _bridge }}"
+      failed_when: false
+
+    - name: Start bridge interface
+      ansible.builtin.command: "ip netns {{ _namespace }} ip link set dev {{ _bridge }} up"
+      failed_when: false
+
+    - name: Enable ipv4 forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+        reload: True
+
+    - name: Masquerade bridge
+      ansible.builtin.iptables:
+        table: nat
+        chain: POSTROUTING
+        out_interface: "{{ ansible_default_ipv4.interface }}"
+        source: "{{ _net }}"
+        destination: 0.0.0.0/0
+        jump: MASQUERADE
+        protocol: all
+        state: present

@@ -1,0 +1,104 @@
+---
+- name: Spawn KVM guests
+  hosts: localhost
+  become: true
+  vars:
+    _cache_dir: /tmp
+    _platform_images: "{{ molecule_yml.platforms | selectattr('image', 'defined') }}"
+    _project: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+    _scenario: "{{ lookup('ansible.builtin.env', 'MOLECULE_SCENARIO_NAME') }}"
+    _namespace: "{{ _project | regex_replace('^.*\\.', '') }}-{{ _scenario }}"
+    _iface: "{{ _namespace }}-0"
+    _bridge: "{{ _namespace }}-br0"
+  tasks:
+    - name: Create KVM keypair
+      ansible.builtin.command:
+        cmd: "ssh-keygen -t rsa -f {{ kvm_keypair }} -q -P '' -C ''"
+        creates: "{{ kvm_keypair }}"
+      become: false
+      when: false
+
+    - name: List cached images
+      ansible.builtin.find:
+        paths: "{{ _cache_dir }}"
+        recurse: false
+      register: _cache_query
+
+    - name: Debug existing disks
+      ansible.builtin.debug:
+        msg: "{{ _cache_query.files | map(attribute='path') }}"
+
+    - name: Inspect cached images
+      ansible.builtin.set_fact:
+        _uncached_images: "{{ (_uncached_images | default([])) + [item] }}"
+      vars:
+        _cached_images: "{{ _cache_query.files | map(attribute='path') }}"
+        _basename: "{{ item | urlsplit('path') | basename }}"
+        _path: "{{ _cache_dir }}/{{ _basename }}.img"
+      loop: "{{ _platform_images | map(attribute='image') | unique }}"
+      when: _path not in _cached_images
+
+    - name: Cache platform images
+      ansible.builtin.get_url:
+        url: "{{ item }}"
+        dest: "{{ _path }}"
+      vars:
+        _basename: "{{ item | urlsplit('path') | basename }}"
+        _path: "{{ _cache_dir }}/{{ _basename }}.img"
+      loop: "{{ _uncached_images | default([]) }}"
+
+    - name: Stop KVM guest
+      community.libvirt.virt:
+        name: "{{ item.name }}"
+        state: shutdown
+      loop_control:
+        label: "{{ item.name }}"
+      loop: "{{ molecule_yml.platforms }}"
+      ignore_errors: true
+
+    - name: Undefine KVM guest
+      community.libvirt.virt:
+        name: "{{ item.name }}"
+        state: shutdown
+      loop_control:
+        label: "{{ item.name }}"
+      loop: "{{ molecule_yml.platforms }}"
+      ignore_errors: true
+
+    - name: Create KVM guest disks
+      ansible.builtin.copy:
+        remote_src: true
+        src: "{{ _cache_dir }}/{{ item.image | urlsplit('path') | basename }}"
+        dest: "{{ _disk }}"
+        owner: libvirt-qemu
+        group: kvm
+        mode: 0666
+        force: true
+      vars:
+        _disk: "{{ _cache_dir }}/{{ item.name }}.img"
+      loop_control:
+        label: "{{ _cache_dir }}/{{ item.name }}.img"
+      loop: "{{ molecule_yml.platforms }}"
+
+    - name: Create KVM guest
+      community.libvirt.virt:
+        xml: "{{ lookup('template', 'vm.xml.j2') }}"
+        command: define
+      vars:
+        guest_hostname: "{{ item.name }}"
+        guest_bridge: "{{ _bridge }}"
+        guest_disk_path: "{{ _disk }}"
+        guest_mac: "{{ '52:54:00' | random_mac(seed=guest_hostname) }}"
+        guest_disk_format: qcow2
+        _disk: "{{ _cache_dir }}/{{ item.name }}.img"
+      loop_control:
+        label: "{{ item.name }} - {{ _disk }}"
+      loop: "{{ molecule_yml.platforms }}"
+
+    - name: Start KVM guest
+      community.libvirt.virt:
+        name: "{{ item.name }}"
+        state: running
+      loop_control:
+        label: "{{ item.name }}"
+      loop: "{{ molecule_yml.platforms }}"
