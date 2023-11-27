@@ -54,6 +54,5 @@ jobs:
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
-          MOLECULE_DOCKER_IMAGE: ${{ matrix.image.name }}
-          MOLECULE_DOCKER_COMMAND: ${{ matrix.image.command }}
+          MOLECULE_KVM_IMAGE: ${{ matrix.image.name }}
           MOLECULE_SCENARIO: ${{ matrix.scenario.name }}

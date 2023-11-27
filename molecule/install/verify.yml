@@ -1,0 +1,17 @@
+---
+- name: Verify rke cluster install
+  hosts: rke
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Debug service facts
+      ansible.builtin.debug:
+        var: services
+
+    - name: Check docker service
+      ansible.builtin.assert:
+        that:
+          - _service in services
+      vars:
+        _service: docker.service
