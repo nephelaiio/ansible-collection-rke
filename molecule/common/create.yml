@@ -6,10 +6,6 @@
     _cache_dir: /tmp
     _platform_images: "{{ molecule_yml.platforms | selectattr('image', 'defined') }}"
     _project: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
-    _scenario: "{{ lookup('ansible.builtin.env', 'MOLECULE_SCENARIO_NAME') }}"
-    _namespace: "{{ _project | regex_replace('^.*\\.', '') }}-{{ _scenario }}"
-    _iface: "{{ _namespace }}-0"
-    _bridge: "{{ _namespace }}-br0"
   tasks:
     - name: Create KVM keypair
       ansible.builtin.command:
@@ -23,10 +19,6 @@
         paths: "{{ _cache_dir }}"
         recurse: false
       register: _cache_query
-
-    - name: Debug existing disks
-      ansible.builtin.debug:
-        msg: "{{ _cache_query.files | map(attribute='path') }}"
 
     - name: Inspect cached images
       ansible.builtin.set_fact:
@@ -47,7 +39,7 @@
         _path: "{{ _cache_dir }}/{{ _basename }}.img"
       loop: "{{ _uncached_images | default([]) }}"
 
-    - name: Stop KVM guest
+    - name: Stop KVM guests
       community.libvirt.virt:
         name: "{{ item.name }}"
         state: shutdown
@@ -56,7 +48,7 @@
       loop: "{{ molecule_yml.platforms }}"
       ignore_errors: true
 
-    - name: Undefine KVM guest
+    - name: Undefine KVM guests
       community.libvirt.virt:
         name: "{{ item.name }}"
         state: shutdown
@@ -68,7 +60,7 @@
     - name: Create KVM guest disks
       ansible.builtin.copy:
         remote_src: true
-        src: "{{ _cache_dir }}/{{ item.image | urlsplit('path') | basename }}"
+        src: "{{ _cache_dir }}/{{ item.image | urlsplit('path') | basename }}.img"
         dest: "{{ _disk }}"
         owner: libvirt-qemu
         group: kvm
@@ -80,13 +72,24 @@
         label: "{{ _cache_dir }}/{{ item.name }}.img"
       loop: "{{ molecule_yml.platforms }}"
 
+    - name: Resize KVM guest disks
+      ansible.builtin.command: "qemu-img resize {{ _disk }} +{{ item.disk | default('10G') }}"
+      vars:
+        _disk: "{{ _cache_dir }}/{{ item.name }}.img"
+      loop: "{{ molecule_yml.platforms }}"
+
+    - name: Create guest network configs
+      ansible.builtin.template:
+
+    - name: Create guest user configs
+      ansible.builtin.template:
+
     - name: Create KVM guest
       community.libvirt.virt:
         xml: "{{ lookup('template', 'vm.xml.j2') }}"
         command: define
       vars:
         guest_hostname: "{{ item.name }}"
-        guest_bridge: "{{ _bridge }}"
         guest_disk_path: "{{ _disk }}"
         guest_mac: "{{ '52:54:00' | random_mac(seed=guest_hostname) }}"
         guest_disk_format: qcow2

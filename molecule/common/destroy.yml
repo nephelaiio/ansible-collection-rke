@@ -2,28 +2,21 @@
 - name: Configure KVM networking
   hosts: localhost
   become: true
-  vars:
-    _project: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
-    _scenario: "{{ lookup('ansible.builtin.env', 'MOLECULE_SCENARIO_NAME') }}"
-    _namespace: "{{ _project | regex_replace('^.*\\.', '') }}-{{ _scenario }}"
-    _iface: "{{ _namespace }}-0"
-    _bridge: "{{ _namespace }}-br0"
-    _iffile: "/sys/class/net/{{ _iface }}"
-    _brfile: "/sys/class/net/{{ _bridge }}"
-    _nsfile: "/run/netns/{{ _namespace }}"
   tasks:
-    - name: Debug scenario networking
-      ansible.builtin.debug:
-        msg: "Destroying namespace={{ _namespace }} bridge={{ _bridge }} interface={{ _iface }}"
+    - name: Stop KVM guests
+      community.libvirt.virt:
+        name: "{{ item.name }}"
+        state: shutdown
+      loop_control:
+        label: "{{ item.name }}"
+      loop: "{{ molecule_yml.platforms }}"
+      ignore_errors: true
 
-    - name: Destroy dummy interface
-      ansible.builtin.command: >
-        /bin/bash -c '[ -f {{ _iffile }} ] && ip netns exec {{ _namespace }} ip link delete {{ _iface }} || exit 0'
-
-    - name: Destroy dummy bridge
-      ansible.builtin.shell: >
-        /bin/bash -c '[ -f {{ _brfile }} ] && ip netns exec {{ _namespace }} ip link delete {{ _bridge }} type bridge || exit 0'
-
-    - name: Destroy network namespace
-      ansible.builtin.shell: >
-        /bin/bash -c '[ -f {{ _nsfile }} ] && ip netns del {{ _namespace }} || exit 0'
+    - name: Undefine KVM guests
+      community.libvirt.virt:
+        name: "{{ item.name }}"
+        state: shutdown
+      loop_control:
+        label: "{{ item.name }}"
+      loop: "{{ molecule_yml.platforms }}"
+      ignore_errors: true
