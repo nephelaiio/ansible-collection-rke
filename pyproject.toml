@@ -17,6 +17,7 @@ molecule = "^6.0.2"
 ansible-lint = { version = "^6.20.3", markers = "platform_system != 'Windows'" }
 libvirt-python = "^9.9.0"
 lxml = "^4.9.3"
+xmltodict = "^0.13.0"
 
 [build-system]
 requires = ["poetry-core"]
