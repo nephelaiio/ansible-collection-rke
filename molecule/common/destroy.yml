@@ -2,8 +2,8 @@
 - name: Configure KVM networking
   hosts: localhost
   become: true
-  vars:
-    _pool_name: default
+  vars_files:
+    - vars.yml
   tasks:
     - name: Query libvirt pool info
       ansible.builtin.shell:
