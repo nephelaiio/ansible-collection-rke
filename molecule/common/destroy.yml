@@ -2,21 +2,44 @@
 - name: Configure KVM networking
   hosts: localhost
   become: true
+  vars:
+    _pool_name: default
   tasks:
+    - name: Query libvirt pool info
+      ansible.builtin.shell:
+        cmd: "virsh pool-dumpxml {{ _pool_name }}"
+        executable: /bin/bash
+      register: pool_query
+
+    - name: Set libvirt pool facts
+      ansible.builtin.set_fact:
+        _pool: "{{ _pool_info.pool.target.path }}"
+      vars:
+        _pool_info: "{{ pool_query.stdout | ansible.utils.from_xml }}"
+
+    - name: Query active KVM guests
+      ansible.builtin.command: virsh list --name
+      register: guest_query
+
     - name: Stop KVM guests
-      community.libvirt.virt:
-        name: "{{ item.name }}"
-        state: shutdown
-      loop_control:
-        label: "{{ item.name }}"
-      loop: "{{ molecule_yml.platforms }}"
-      ignore_errors: true
+      ansible.builtin.command: virsh destroy {{ item }}
+      loop: "{{ molecule_yml.platforms | selectattr('name', 'in', guest_query.stdout_lines) | map(attribute='name') }}"
+
+    - name: Query defined KVM guests
+      ansible.builtin.command: virsh list --name --all
+      register: guest_query
 
     - name: Undefine KVM guests
-      community.libvirt.virt:
-        name: "{{ item.name }}"
-        state: shutdown
+      ansible.builtin.command: virsh undefine {{ item }}
+      loop: "{{ molecule_yml.platforms | selectattr('name', 'in', guest_query.stdout_lines) | map(attribute='name') }}"
+
+    - name: Delete guest disks
+      ansible.builtin.file:
+        dest: "{{ _path }}"
+        state: absent
+      vars:
+        _extensions: ['img', 'iso']
+        _path: "{{ _pool }}/{{ item.0 }}.{{ item.1 }}"
       loop_control:
-        label: "{{ item.name }}"
-      loop: "{{ molecule_yml.platforms }}"
-      ignore_errors: true
+        label: "{{ _path }}"
+      loop: "{{ molecule_yml.platforms | map(attribute='name') | product(_extensions) }}"

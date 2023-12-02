@@ -1,24 +1,43 @@
 ---
 - name: Spawn KVM guests
   hosts: localhost
-  become: true
   vars:
-    _cache_dir: /tmp
-    _platform_images: "{{ molecule_yml.platforms | selectattr('image', 'defined') }}"
-    _project: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+    _pool_name: default
+    _network: default
+    _user: molecule
   tasks:
-    - name: Create KVM keypair
-      ansible.builtin.command:
-        cmd: "ssh-keygen -t rsa -f {{ kvm_keypair }} -q -P '' -C ''"
-        creates: "{{ kvm_keypair }}"
-      become: false
-      when: false
+    - name: Install package requirements
+      ansible.builtin.package:
+        name: xorriso
+      become: true
+
+    - name: Query libvirt pool info
+      ansible.builtin.shell:
+        cmd: "virsh pool-dumpxml {{ _pool_name }}"
+        executable: /bin/bash
+      register: pool_query
+
+    - name: Set libvirt pool facts
+      ansible.builtin.set_fact:
+        _pool: "{{ _pool_info.pool.target.path }}"
+      vars:
+        _pool_info: "{{ pool_query.stdout | ansible.utils.from_xml }}"
+
+    - name: Query active KVM guests
+      ansible.builtin.command: virsh list --name
+      register: guest_query
+
+    - name: Create ssh key
+      community.crypto.openssh_keypair:
+        path: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/id_rsa"
+      register: _pubkey
 
     - name: List cached images
       ansible.builtin.find:
-        paths: "{{ _cache_dir }}"
+        paths: "{{ _pool }}"
         recurse: false
       register: _cache_query
+      become: true
 
     - name: Inspect cached images
       ansible.builtin.set_fact:
@@ -26,82 +45,132 @@
       vars:
         _cached_images: "{{ _cache_query.files | map(attribute='path') }}"
         _basename: "{{ item | urlsplit('path') | basename }}"
-        _path: "{{ _cache_dir }}/{{ _basename }}.img"
-      loop: "{{ _platform_images | map(attribute='image') | unique }}"
+        _path: "{{ _pool }}/{{ _basename }}"
+      loop: "{{ molecule_yml.platforms | map(attribute='image') | unique }}"
       when: _path not in _cached_images
 
     - name: Cache platform images
       ansible.builtin.get_url:
         url: "{{ item }}"
         dest: "{{ _path }}"
+        owner: root
+        group: root
+        mode: 0600
       vars:
         _basename: "{{ item | urlsplit('path') | basename }}"
-        _path: "{{ _cache_dir }}/{{ _basename }}.img"
+        _path: "{{ _pool }}/{{ _basename }}"
       loop: "{{ _uncached_images | default([]) }}"
-
-    - name: Stop KVM guests
-      community.libvirt.virt:
-        name: "{{ item.name }}"
-        state: shutdown
-      loop_control:
-        label: "{{ item.name }}"
-      loop: "{{ molecule_yml.platforms }}"
-      ignore_errors: true
-
-    - name: Undefine KVM guests
-      community.libvirt.virt:
-        name: "{{ item.name }}"
-        state: shutdown
-      loop_control:
-        label: "{{ item.name }}"
-      loop: "{{ molecule_yml.platforms }}"
-      ignore_errors: true
+      become: true
 
     - name: Create KVM guest disks
       ansible.builtin.copy:
         remote_src: true
-        src: "{{ _cache_dir }}/{{ item.image | urlsplit('path') | basename }}.img"
+        src: "{{ _pool }}/{{ item.image | urlsplit('path') | basename }}"
         dest: "{{ _disk }}"
         owner: libvirt-qemu
         group: kvm
         mode: 0666
         force: true
       vars:
-        _disk: "{{ _cache_dir }}/{{ item.name }}.img"
+        _disk: "{{ _pool }}/{{ item.name }}.img"
       loop_control:
-        label: "{{ _cache_dir }}/{{ item.name }}.img"
+        label: "{{ _disk }}"
       loop: "{{ molecule_yml.platforms }}"
+      become: true
 
-    - name: Resize KVM guest disks
-      ansible.builtin.command: "qemu-img resize {{ _disk }} +{{ item.disk | default('10G') }}"
+    - name: Create cloud-init tempdir
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: libvirt
+      register: libvirt_tmpdir
+
+    - name: Create guest vm
+      block:
+        - name: Create instance tempdir
+          ansible.builtin.file:
+            dest: "{{ libvirt_tmpdir.path }}/{{ item }}"
+            state: directory
+          loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
+
+        - name: Create cloud-init meta data
+          ansible.builtin.template:
+            src: "meta-data.yml.j2"
+            dest: "{{ libvirt_tmpdir.path }}/{{ item }}/meta-data"
+          loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
+
+        - name: Create cloud-init user data
+          ansible.builtin.template:
+            src: "user-data.yml.j2"
+            dest: "{{ libvirt_tmpdir.path }}/{{ item }}/user-data"
+          vars:
+            _key: "{{ _pubkey.public_key }}"
+          loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
+
+        - name: Create cloud-init iso
+          ansible.builtin.command: |
+            xorriso -as mkisofs
+              -volid cidata -joliet -rock
+              -o {{ _pool }}/{{ item }}.iso .
+          args:
+            chdir: "{{ libvirt_tmpdir.path }}/{{ item }}"
+          loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
+          become: true
+
+        - name: Create KVM guest
+          community.libvirt.virt:
+            xml: "{{ lookup('template', 'vm.xml.j2') }}"
+            command: define
+          vars:
+            guest_hostname: "{{ item.name }}"
+            guest_disk_format: qcow2
+            guest_disk_path: "{{ _pool }}/{{ item.name }}.img"
+            guest_iso_path: "{{ _pool }}/{{ item.name }}.iso"
+            guest_network: "{{ _network }}"
+            guest_mac: "{{ '52:54:00' | random_mac(seed=guest_hostname) }}"
+          loop_control:
+            label: "{{ item.name }} - {{ _pool }}/{{ item.name }}.img"
+          loop: "{{ molecule_yml.platforms }}"
+          become: true
+
+        - name: Start KVM guest
+          community.libvirt.virt:
+            name: "{{ item }}"
+            state: running
+          loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
+          become: true
+
+      always:
+        - name: Destroy cloud-init tempdir
+          ansible.builtin.file:
+            dest: "{{ libvirt_tmpdir.path }}"
+            state: absent
+          when: false
+
+    - name: Query dhcp leases
+      ansible.builtin.shell: "virsh net-dhcp-leases --network default | grep {{ item }} | awk '{print $5}'"
+      loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
+      register: dhcp_query
+
+    - name: Populate instance config dict
+      ansible.builtin.set_fact:
+        instance_conf_dict: {
+          'instance': "{{ item }}",
+          'address': "{{ _address | ansible.utils.ipaddr('address') }}",
+          'user': "{{ _user }}",
+          'port': "22",
+          'identity_file': "{{ _pubkey.filename }}"
+        }
       vars:
-        _disk: "{{ _cache_dir }}/{{ item.name }}.img"
-      loop: "{{ molecule_yml.platforms }}"
+        _addresses: "{{ dhcp_query.results | nephelaiio.plugins.list_to_dict('item') }}"
+        _address: "{{ _addresses[item].stdout }}"
+      loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
+      register: instance_config_dict
 
-    - name: Create guest network configs
-      ansible.builtin.template:
+    - name: Convert instance config dict to a list
+      ansible.builtin.set_fact:
+        _instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
 
-    - name: Create guest user configs
-      ansible.builtin.template:
-
-    - name: Create KVM guest
-      community.libvirt.virt:
-        xml: "{{ lookup('template', 'vm.xml.j2') }}"
-        command: define
-      vars:
-        guest_hostname: "{{ item.name }}"
-        guest_disk_path: "{{ _disk }}"
-        guest_mac: "{{ '52:54:00' | random_mac(seed=guest_hostname) }}"
-        guest_disk_format: qcow2
-        _disk: "{{ _cache_dir }}/{{ item.name }}.img"
-      loop_control:
-        label: "{{ item.name }} - {{ _disk }}"
-      loop: "{{ molecule_yml.platforms }}"
-
-    - name: Start KVM guest
-      community.libvirt.virt:
-        name: "{{ item.name }}"
-        state: running
-      loop_control:
-        label: "{{ item.name }}"
-      loop: "{{ molecule_yml.platforms }}"
+    - name: Dump instance config
+      ansible.builtin.copy:
+        content: "{{ _instance_conf | ansible.builtin.to_nice_yaml(indent=2) }}"
+        dest: "{{ molecule_instance_config }}"

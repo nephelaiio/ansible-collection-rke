@@ -16,6 +16,9 @@ COLLECTION_VERSION = $$(yq '.version' < galaxy.yml)
 all: install version lint test
 
 test: lint
+	if groups ${USER} | /bin/grep -q libvirt; then else \
+		sudo usermod -aG libvirt ${USER}; \
+	fi;
 	poetry run molecule test -s ${MOLECULE_SCENARIO}
 
 install:

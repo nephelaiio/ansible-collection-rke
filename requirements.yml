@@ -5,3 +5,5 @@ collections:
     source: .
     type: dir
   - name: nephelaiio.plugins
+  - name: community.molecule
+  - name: ansible.utils
