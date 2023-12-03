@@ -43,3 +43,16 @@
       loop_control:
         label: "{{ _path }}"
       loop: "{{ molecule_yml.platforms | map(attribute='name') | product(_extensions) }}"
+
+    - name: Stop libvirt network
+      community.libvirt.virt_net:
+        command: destroy
+        name: "{{ _network }}"
+      when: _network != "default"
+      failed_when: false
+
+    - name: Delete libvirt network
+      community.libvirt.virt_net:
+        command: undefine
+        name: "{{ _network }}"
+      when: _network != "default"

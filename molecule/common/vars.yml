@@ -1,4 +1,5 @@
 ---
-_network: default
+_network: rke
+_address: 172.31.255.1/24
 _user: molecule
 _pool_name: default

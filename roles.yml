@@ -5,4 +5,4 @@ roles:
     version: 0.1.14
   - name: docker
     src: https://github.com/nephelaiio/ansible-role-docker.git
-    version: 6.0.1
+    version: 6.0.3
