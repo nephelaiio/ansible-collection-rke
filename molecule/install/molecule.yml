@@ -41,6 +41,7 @@ provisioner:
   name: ansible
   playbooks:
     create: ../common/create.yml
+    prepare: ../common/prepare.yml
     converge: ../common/install.yml
     destroy: ../common/destroy.yml
     side_effect: ../common/install.yml

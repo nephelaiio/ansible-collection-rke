@@ -1,6 +1,7 @@
 ---
 - name: Prepare KVM guests
   hosts: all
+  become: true
   tasks:
     - name: Update apt package cache
       ansible.builtin.apt:
