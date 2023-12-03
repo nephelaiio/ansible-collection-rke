@@ -1,0 +1,24 @@
+---
+- name: Prepare rke cluster members
+  hosts: "{{ rke_control | default('rke_control') }}:{{ rke_workers | default('rke_workers') }}"
+  become: true
+  tasks:
+    - name: Install deb iscsi packages
+      ansible.builtin.package:
+        name: open-iscsi
+      when: ansible_os_family == "Debian"
+
+    - name: Install rpm iscsi packages
+      ansible.builtin.package:
+        name: iscsi-initiator-utils
+      when: ansible_os_family == "RedHat"
+
+    - name: Add host entries for cluster members
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: ".*{{ item }}.*"
+        line: >
+          {{ hostvars[item]['ansible_default_ipv4']['address'] }}
+          {{ hostvars[item]['ansible_fqdn'] }}
+          {{ hostvars[item]['ansible_hostname'] }}
+      loop: "{{ ansible_play_hosts }}"
