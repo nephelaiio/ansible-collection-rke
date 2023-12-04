@@ -1,0 +1,22 @@
+---
+- name: Prepare RKE cluster members
+  hosts: "{{ rke_control | default('rke_control') }}"
+  become: true
+  roles:
+    - nephelaiio.rke.helm
+  pre_tasks:
+    - name: Include collection variables
+      ansible.builtin.include_vars:
+        file: main.yml
+
+    - name: Query helm releases
+      community.general.github_release:
+        user: helm
+        repo: helm
+        action: latest_release
+      register: _helm_release_query
+      delegate_to: localhost
+
+    - name: Set target helm release
+      ansible.builtin.set_fact:
+        helm_version: "{{ rke_helm_version | default(_helm_release_query.tag) }}"

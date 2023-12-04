@@ -7,3 +7,6 @@
 
 - name: Deploy Consul
   ansible.builtin.import_playbook: nephelaiio.rke.consul
+
+- name: Deploy Helm
+  ansible.builtin.import_playbook: nephelaiio.rke.helm
