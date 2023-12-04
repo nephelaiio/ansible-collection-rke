@@ -1,8 +1,14 @@
 ---
-- name: Prepare rke cluster members
+- name: Prepare RKE cluster members
   hosts: "{{ rke_control | default('rke_control') }}:{{ rke_workers | default('rke_workers') }}"
   become: true
-  tasks:
+  roles:
+    - nephelaiio.rke.helm
+  pre_tasks:
+    - name: Include collection variables
+      ansible.builtin.include_vars:
+        file: main.yml
+
     - name: Install deb iscsi packages
       ansible.builtin.package:
         name: open-iscsi
@@ -22,3 +28,15 @@
           {{ hostvars[item]['ansible_fqdn'] }}
           {{ hostvars[item]['ansible_hostname'] }}
       loop: "{{ ansible_play_hosts }}"
+
+    - name: Query helm releases
+      community.general.github_release:
+        user: helm
+        repo: helm
+        action: latest_release
+      register: _helm_release_query
+      delegate_to: localhost
+
+    - name: Set target helm release
+      ansible.builtin.set_fact:
+        helm_version: "{{ rke_helm_version | default(_helm_release_query.tag) }}"

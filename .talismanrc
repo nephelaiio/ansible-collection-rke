@@ -7,3 +7,5 @@ fileignoreconfig:
     ignore_detectors: [filecontent]
   - filename: molecule/common/templates/vm.xml.j2
     ignore_detectors: [filecontent]
+  - filename: playbooks/vars/main.yml
+    ignore_detectors: [filecontent]

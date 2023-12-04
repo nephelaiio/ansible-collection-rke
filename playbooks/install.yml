@@ -2,5 +2,8 @@
 - name: Prepare cluster nodes
   ansible.builtin.import_playbook: nephelaiio.rke.prepare
 
-- name: Deploy docker
+- name: Deploy Docker
   ansible.builtin.import_playbook: nephelaiio.rke.docker
+
+- name: Deploy Consul
+  ansible.builtin.import_playbook: nephelaiio.rke.consul

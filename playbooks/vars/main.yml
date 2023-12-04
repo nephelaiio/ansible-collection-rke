@@ -1,2 +1,12 @@
 ---
+rke_cluster_name: nephelaiio
+
 rke_install_user: "{{ ansible_user_id }}"
+rke_install_dir: /opt/rke
+rke_install_manifests: "{{ rke_cluster_dir }}/manifests"
+
+rke_ssh_key: ~/.ssh/id_rsa
+
+rke_bin_rke: /usr/local/bin/rke
+rke_bin_kubectl: /usr/local/bin/kubectl
+rke_bin_helm: /usr/local/bin/helm

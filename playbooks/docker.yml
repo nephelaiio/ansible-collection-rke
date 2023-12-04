@@ -11,7 +11,6 @@
     - name: Include collection variables
       ansible.builtin.include_vars:
         file: main.yml
-
   tasks:
     - name: Disable active swap volume
       shell: swapoff -a
