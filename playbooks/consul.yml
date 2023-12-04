@@ -1,10 +1,10 @@
 ---
-- name: Deploy consul role
+- name: Deploy Consul to control nodes
   hosts: "{{ rke_control | default('rke_control') }}"
   become: true
   any_errors_fatal: true
   roles:
-    - role: hashicorp.consul
+    - role: nephelaiio.rke.consul
       vars:
         consul_node_role: "server"
         consul_bootstrap_expect: true
@@ -13,7 +13,7 @@
         consul_datacenter: "{{ rke_cluster_name }}"
         consul_encrypt_enable: false
   pre_tasks:
-    - name: Query helm releases
+    - name: Query Consul releases
       community.general.github_release:
         user: hashicorp
         repo: consul
@@ -21,6 +21,6 @@
       register: _consul_release_query
       delegate_to: localhost
 
-    - name: Set target helm release
+    - name: Set target Consul release
       ansible.builtin.set_fact:
-        consul_version: "{{ rke_consul_version | default(_consul_release_query.tag) }}"
+        consul_version: "{{ rke_consul_version | default(_consul_release_query.tag) | regex_replace('^v', '') }}"

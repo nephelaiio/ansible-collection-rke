@@ -9,3 +9,6 @@ roles:
   - name: helm
     src: https://github.com/geerlingguy/ansible-role-helm.git
     version: 1.0.1
+  - name: consul
+    src: https://github.com/ansible-community/ansible-consul.git
+    version: v3.0.1
