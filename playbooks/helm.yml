@@ -4,12 +4,13 @@
   become: true
   roles:
     - nephelaiio.rke.helm
+    - nephelaiio.rke.k8s_repo
   pre_tasks:
     - name: Include collection variables
       ansible.builtin.include_vars:
         file: main.yml
 
-    - name: Query helm releases
+    - name: Query Helm releases
       community.general.github_release:
         user: helm
         repo: helm
@@ -17,6 +18,15 @@
       register: _helm_release_query
       delegate_to: localhost
 
-    - name: Set target helm release
+    - name: Set target Helm release
       ansible.builtin.set_fact:
         helm_version: "{{ rke_helm_version | default(_helm_release_query.tag) }}"
+
+    - name: Set target Kubernetes repo release
+      ansible.builtin.set_fact:
+        k8s_repo_release: "{{ rke_release_k8s }}"
+
+    - name: Install kubectl
+      ansible.builtin.package:
+        name: kubectl
+        state: latest

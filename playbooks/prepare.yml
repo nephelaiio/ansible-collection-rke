@@ -7,12 +7,12 @@
       ansible.builtin.include_vars:
         file: main.yml
 
-    - name: Install deb iscsi packages
+    - name: Install deb ISCSI packages
       ansible.builtin.package:
         name: open-iscsi
       when: ansible_os_family == "Debian"
 
-    - name: Install rpm iscsi packages
+    - name: Install rpm ISCSI packages
       ansible.builtin.package:
         name: iscsi-initiator-utils
       when: ansible_os_family == "RedHat"

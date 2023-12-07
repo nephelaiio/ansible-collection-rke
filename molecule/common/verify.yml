@@ -1,0 +1,23 @@
+---
+- name: Verify tool installation
+  hosts: rke_control
+  tasks:
+    - name: Check kubectl deployment
+      ansible.builtin.command: kubectl --help
+
+    - name: Check Helm deployment
+      ansible.builtin.command: helm --help
+
+
+- name: Verify Docker install
+  hosts: rke
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Check Docker service
+      ansible.builtin.assert:
+        that:
+          - _service in services
+      vars:
+        _service: docker.service

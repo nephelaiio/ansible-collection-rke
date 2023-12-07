@@ -1,5 +1,5 @@
 ---
-- name: Deploy Consul to control nodes
+- name: Deploy Consul
   hosts: "{{ rke_control | default('rke_control') }}"
   become: true
   any_errors_fatal: true
