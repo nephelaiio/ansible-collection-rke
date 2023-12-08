@@ -79,7 +79,7 @@
     - name: Create KVM guest
       delegate_to: localhost
       block:
-        - name: Create ssh key
+        - name: Create SSH key
           community.crypto.openssh_keypair:
             path: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/id_rsa"
           run_once: true
@@ -197,13 +197,13 @@
   vars_files:
     - vars.yml
   tasks:
-    - name: Create ssh key
+    - name: Create SSH key
       community.crypto.openssh_keypair:
         path: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/id_rsa"
       run_once: true
       register: _pubkey
 
-    - name: Wait for dhcp lease assignment
+    - name: Wait for DHCP lease assignment
       ansible.builtin.shell:
         cmd: "virsh net-dhcp-leases --network {{ _network }} | grep {{ item }}"
         executable: /bin/bash
@@ -213,7 +213,7 @@
       delay: 30
       until: dhcp_query is succeeded
 
-    - name: Query dhcp leases
+    - name: Query DHCP leases
       ansible.builtin.shell: "virsh net-dhcp-leases --network {{ _network }} | grep {{ item }} | awk '{print $5}'"
       loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
       register: dhcp_query

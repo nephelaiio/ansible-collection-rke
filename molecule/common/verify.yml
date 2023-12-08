@@ -8,6 +8,9 @@
     - name: Check Helm deployment
       ansible.builtin.command: helm --help
 
+    - name: Check RKE binary
+      ansible.builtin.command: rke --help
+
 
 - name: Verify Docker install
   hosts: rke

@@ -6,8 +6,8 @@ rke_release_k8s: v1.25.14
 rke_release_consul: v1.17.0
 
 rke_install_user: "{{ ansible_user_id }}"
-rke_install_dir: /opt/rke
-rke_install_manifests: "{{ rke_cluster_dir }}/manifests"
+rke_install_root_dir: /opt/rke
+rke_install_manifest_dir: "{{ rke_install_root_dir }}/manifests"
 
 rke_ssh_key: ~/.ssh/id_rsa
 
