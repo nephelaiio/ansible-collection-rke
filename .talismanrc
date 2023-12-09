@@ -9,3 +9,7 @@ fileignoreconfig:
     ignore_detectors: [filecontent]
   - filename: playbooks/vars/main.yml
     ignore_detectors: [filecontent]
+  - filename: playbooks/rke.yml
+    ignore_detectors: [filecontent]
+  - filename: playbooks/ssh.yml
+    ignore_detectors: [filecontent]

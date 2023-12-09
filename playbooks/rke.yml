@@ -1,5 +1,5 @@
 ---
-- name: Deploy RKE cluster
+- name: Install RKE binary
   hosts: "{{ rke_control | default('rke_control') }}"
   become: true
   pre_tasks:
@@ -10,15 +10,38 @@
     - name: Create cluster directory structure
       ansible.builtin.file:
         state: directory
-        path: "{{ item }}"
+        path: "{{ rke_install_root }}"
         owner: "{{ rke_install_user }}"
         mode: 0750
-      loop:
-        - "{{ rke_install_root_dir }}"
-        - "{{ rke_install_manifest_dir }}"
 
     - name: Deploy RKE binary
       ansible.builtin.get_url:
         url: "https://github.com/rancher/rke/releases/download/{{ rke_release_rke }}/rke_linux-amd64"
         dest: "{{ rke_bin_rke }}"
         mode: 0755
+
+    - name: Stat cluster state file
+      ansible.builtin.stat:
+        path: "{{ rke_install_root }}/cluster.rkestate"
+      register: check_rkestate
+
+    - name: Group target hosts
+      ansible.builtin.group_by:
+        key: "_rke_{{ 'install' if (check_rkestate.stat.exists | bool) else 'noop' }}"
+
+
+- name: Deploy RKE cluster
+  hosts: _rke_install
+  become: true
+  pre_tasks:
+    - name: Include collection variables
+      ansible.builtin.include_vars:
+        file: main.yml
+  tasks:
+    - name: Deploy/Update rke cluster
+      ansible.builtin.command:
+        cmd: rke up
+        chdir: "{{ rke_install_root }}"
+      retries: 2
+      register: rke_deploy_result
+      until: rke_deploy_result.rc == 0

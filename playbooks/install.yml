@@ -11,5 +11,8 @@
 - name: Deploy Consul
   ansible.builtin.import_playbook: nephelaiio.rke.consul
 
+- name: Configure SSH access
+  ansible.builtin.import_playbook: nephelaiio.rke.ssh
+
 - name: Deploy RKE cluster
   ansible.builtin.import_playbook: nephelaiio.rke.rke
