@@ -1,44 +1,69 @@
 ---
 - name: Install RKE binary
   hosts: "{{ rke_control | default('rke_control') }}"
-  become: true
   pre_tasks:
     - name: Include collection variables
       ansible.builtin.include_vars:
         file: main.yml
+
+    - name: Set install facts
+      ansible.builtin.set_fact:
+        _install_root: "{{ rke_install_root }}"
+        _install_user: "{{ rke_install_user }}"
+
   tasks:
     - name: Create cluster directory structure
       ansible.builtin.file:
         state: directory
-        path: "{{ rke_install_root }}"
-        owner: "{{ rke_install_user }}"
+        path: "{{ _install_root }}"
+        owner: "{{ _install_user }}"
         mode: 0750
+      become: true
 
     - name: Deploy RKE binary
       ansible.builtin.get_url:
         url: "https://github.com/rancher/rke/releases/download/{{ rke_release_rke }}/rke_linux-amd64"
         dest: "{{ rke_bin_rke }}"
         mode: 0755
+        owner: root
+        group: root
+      become: true
+
+    - name: Build RKE cluster file
+      ansible.builtin.template:
+        src: cluster.j2.yml
+        dest: "{{ _install_root }}/cluster.yml"
+        owner: "{{ _install_user }}"
+        mode: 0640
+      vars:
+        _iface_name: "{{ ansible_default_ipv4.interface }}"
+        _control_hosts: "{{ groups[rke_control | default('rke_control')] }}"
+        _worker_hosts: "{{ groups[rke_worker | default('rke_worker')] }}"
+        _provider: "{{ rke_cloud_provider | default('onpremise') }}"
+        _api_url: "{{ rke_api_url | urlsplit('hostname') }}"
 
     - name: Stat cluster state file
       ansible.builtin.stat:
         path: "{{ rke_install_root }}/cluster.rkestate"
       register: check_rkestate
 
-    - name: Group target hosts
+    - name: Group deployed hosts
       ansible.builtin.group_by:
-        key: "_rke_{{ 'install' if (check_rkestate.stat.exists | bool) else 'noop' }}"
+        key: "_rke_{{ 'installed' if (check_rkestate.stat.exists | bool) else 'uninstalled' }}"
 
 
 - name: Deploy RKE cluster
-  hosts: _rke_install
-  become: true
+  hosts: "{{ _targets | first }}"
+  vars:
+    _installed: "{{ groups['_rke_installed'] | default([]) }}"
+    _uninstalled: "{{ groups['_rke_uninstalled'] | default([]) }}"
+    _targets: "{{ (_installed | length > 0) | ternary(_installed, _uninstalled) }}"
   pre_tasks:
     - name: Include collection variables
       ansible.builtin.include_vars:
         file: main.yml
   tasks:
-    - name: Deploy/Update rke cluster
+    - name: Deploy/Update RKE cluster
       ansible.builtin.command:
         cmd: rke up
         chdir: "{{ rke_install_root }}"

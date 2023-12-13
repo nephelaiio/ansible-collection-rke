@@ -25,7 +25,7 @@
       community.libvirt.virt_net:
         command: define
         name: "{{ _network }}"
-        xml: "{{ lookup('template', 'network.xml.j2') }}"
+        xml: "{{ lookup('template', 'network.j2.xml') }}"
       vars:
         _net_address: "{{ _address | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') }}"
         _net_mask: "{{ _address | ansible.utils.ipaddr('netmask') }}"
@@ -167,7 +167,7 @@
 
                 - name: Create KVM guest
                   community.libvirt.virt:
-                    xml: "{{ lookup('template', 'vm.xml.j2') }}"
+                    xml: "{{ lookup('template', 'vm.j2.xml') }}"
                     command: define
                   vars:
                     guest_hostname: "{{ inventory_hostname }}"

@@ -1,24 +1,32 @@
 ---
 - name: Install docker
   hosts: "{{ rke | default('rke') }}"
-  become: true
-  roles:
-    - nephelaiio.rke.docker
-  vars:
-    docker_user: "{{ rke_install_user }}"
   pre_tasks:
     - name: Include collection variables
       ansible.builtin.include_vars:
         file: main.yml
+
+    - name: Set install facts
+      ansible.builtin.set_fact:
+        docker_user: "{{ rke_install_user }}"
+
   tasks:
     - name: Disable active swap volume
-      shell: swapoff -a
+      ansible.builtin.shell: swapoff -a
       tags: skip_ansible_lint
       become: true
 
     - name: Disable swap fstab entry
-      lineinfile:
+      ansible.builtin.lineinfile:
         state: absent
         path: /etc/fstab
         regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
       become: true
+
+    - name: Install Docker
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.docker
+        apply:
+          become: true
+      vars:
+        docker_user_manage: true

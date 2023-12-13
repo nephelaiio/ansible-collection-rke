@@ -1,0 +1,54 @@
+---
+nodes:
+{% for node in ((_control_hosts + _worker_hosts) | unique) %}
+  - address: "{{ node }}"
+{% if _provider is search('aws') %}
+    hostname_override: "{{ node }}"
+    internal_address: "{{ hostvars[node].ansible_host }}"
+{% endif %}
+    user: "{{ rke_install_user }}"
+    role:
+{% if node in _worker_hosts %}
+      - worker
+{% endif %}
+{% if node in _control_hosts %}
+      - controlplane
+      - etcd
+{% endif %}
+{% endfor %}
+
+# If set to true, RKE will not fail when unsupported Docker version
+# are found
+ignore_docker_version: false
+
+# Cluster level SSH private key
+# Used if no ssh information is set for the node
+ssh_key_path: {{ rke_ssh_key }}
+
+# Set the name of the Kubernetes cluster
+cluster_name: {{ _cluster_name | default('rke') }}
+
+{% if _provider is search('aws') %}
+cloud_provider:
+  name: {{ _provider }}
+{% endif %}
+
+authentication:
+  strategy: x509
+  sans:
+    - {{ _api_url }}
+
+authorization:
+  mode: rbac
+
+network:
+  plugin: flannel
+
+dns:
+  provider: coredns
+
+monitoring:
+  provider: none
+
+ingress:
+  provider: none

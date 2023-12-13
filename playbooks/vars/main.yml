@@ -1,5 +1,5 @@
 ---
-rke_cluster_name: nephelaiio
+rke_api_url: "https://api.{{ rke_cluster_name }}"
 
 rke_release_rke: v1.5.0
 rke_release_k8s: v1.25.14
