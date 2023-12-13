@@ -12,6 +12,7 @@
         user: helm
         repo: helm
         action: latest_release
+        token: "{{ lookup('ansible.builtin.env', 'GITHUB_TOKEN') | default(omit) }}"
       register: _helm_release_query
       delegate_to: localhost
 
