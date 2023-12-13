@@ -3,16 +3,7 @@
   hosts: "{{ rke_control | default('rke_control') }}"
   become: true
   any_errors_fatal: true
-  roles:
-    - role: nephelaiio.rke.consul
-      vars:
-        consul_node_role: "server"
-        consul_bootstrap_expect: true
-        consul_bootstrap_expect_value: "{{ ansible_play_hosts_all | length }}"
-        consul_group_name: rke_control
-        consul_datacenter: "{{ rke_cluster_name }}"
-        consul_encrypt_enable: false
-  pre_tasks:
+  tasks:
     - name: Query Consul releases
       community.general.github_release:
         user: hashicorp
@@ -21,6 +12,16 @@
       register: _consul_release_query
       delegate_to: localhost
 
-    - name: Set target Consul release
+    - name: Set Consul facts
       ansible.builtin.set_fact:
         consul_version: "{{ rke_consul_version | default(_consul_release_query.tag) | regex_replace('^v', '') }}"
+        consul_node_role: "server"
+        consul_bootstrap_expect: true
+        consul_bootstrap_expect_value: "{{ ansible_play_hosts_all | length }}"
+        consul_group_name: "{{ rke_control | default('rke_control') }}"
+        consul_datacenter: "{{ rke_cluster_name | regex_replace('[.]', '_') }}"
+        consul_encrypt_enable: false
+
+    - name: Deploy Consul
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.consul

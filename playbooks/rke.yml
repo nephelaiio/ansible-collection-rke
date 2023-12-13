@@ -1,7 +1,7 @@
 ---
 - name: Install RKE binary
   hosts: "{{ rke_control | default('rke_control') }}"
-  pre_tasks:
+  tasks:
     - name: Include collection variables
       ansible.builtin.include_vars:
         file: main.yml
@@ -11,7 +11,6 @@
         _install_root: "{{ rke_install_root }}"
         _install_user: "{{ rke_install_user }}"
 
-  tasks:
     - name: Create cluster directory structure
       ansible.builtin.file:
         state: directory
@@ -58,11 +57,11 @@
     _installed: "{{ groups['_rke_installed'] | default([]) }}"
     _uninstalled: "{{ groups['_rke_uninstalled'] | default([]) }}"
     _targets: "{{ (_installed | length > 0) | ternary(_installed, _uninstalled) }}"
-  pre_tasks:
+  tasks:
     - name: Include collection variables
       ansible.builtin.include_vars:
         file: main.yml
-  tasks:
+
     - name: Deploy/Update RKE cluster
       ansible.builtin.command:
         cmd: rke up

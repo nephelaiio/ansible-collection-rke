@@ -1,7 +1,7 @@
 ---
 - name: Install docker
   hosts: "{{ rke | default('rke') }}"
-  pre_tasks:
+  tasks:
     - name: Include collection variables
       ansible.builtin.include_vars:
         file: main.yml
@@ -10,7 +10,6 @@
       ansible.builtin.set_fact:
         docker_user: "{{ rke_install_user }}"
 
-  tasks:
     - name: Disable active swap volume
       ansible.builtin.shell: swapoff -a
       tags: skip_ansible_lint
