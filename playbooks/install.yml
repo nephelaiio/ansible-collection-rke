@@ -16,6 +16,3 @@
 
 - name: Deploy Consul
   ansible.builtin.import_playbook: nephelaiio.rke.consul
-
-- name: Configure kube_config
-  ansible.builtin.import_playbook: nephelaiio.rke.kubeconfig
