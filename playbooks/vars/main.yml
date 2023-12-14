@@ -7,6 +7,7 @@ rke_release_consul: v1.17.0
 
 rke_install_user: "{{ ansible_user_id }}"
 rke_install_root: /opt/rke
+rke_state_file: "{{ rke_install_root }}/cluster.rkestate"
 
 rke_ssh_key: ~/.ssh/id_rsa
 
