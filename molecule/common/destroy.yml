@@ -5,17 +5,10 @@
   vars_files:
     - vars.yml
   tasks:
-    - name: Query libvirt pool info
-      ansible.builtin.shell:
-        cmd: "virsh pool-dumpxml {{ _pool_name }}"
-        executable: /bin/bash
-      register: pool_query
-
-    - name: Set libvirt pool facts
-      ansible.builtin.set_fact:
-        _pool: "{{ _pool_info.pool.target.path }}"
-      vars:
-        _pool_info: "{{ pool_query.stdout | ansible.utils.from_xml }}"
+    - name: Destroy libvirt pool
+      community.libvirt.virt_pool:
+        state: deleted
+        name: "{{ _libvirt_pool }}"
 
     - name: Query active KVM guests
       ansible.builtin.command: virsh list --name
@@ -39,7 +32,7 @@
         state: absent
       vars:
         _extensions: ['img', 'iso']
-        _path: "{{ _pool }}/{{ item.0 }}.{{ item.1 }}"
+        _path: "{{ _libvirt_pool }}/{{ item.0 }}.{{ item.1 }}"
       loop_control:
         label: "{{ _path }}"
       loop: "{{ molecule_yml.platforms | map(attribute='name') | product(_extensions) }}"
@@ -47,12 +40,12 @@
     - name: Stop libvirt network
       community.libvirt.virt_net:
         command: destroy
-        name: "{{ _network }}"
-      when: _network != "default"
+        name: "{{ _libvirt_network }}"
+      when: _libvirt_network != "default"
       failed_when: false
 
     - name: Delete libvirt network
       community.libvirt.virt_net:
         command: undefine
-        name: "{{ _network }}"
-      when: _network != "default"
+        name: "{{ _libvirt_network }}"
+      when: _libvirt_network != "default"
