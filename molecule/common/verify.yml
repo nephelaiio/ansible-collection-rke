@@ -56,5 +56,5 @@
       ansible.builtin.assert:
         that:
           - _status | reject('equalto', 'Healthy') | length == 0
-        vars:
-          _status: "{{ _kubectl_status.stdout }}"
+      vars:
+        _status: "{{ _kubectl_status.stdout }}"
