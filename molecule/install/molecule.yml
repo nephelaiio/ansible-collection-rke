@@ -58,14 +58,7 @@ provisioner:
 verifier:
   name: ansible
 scenario:
-  test_sequence:
-    - dependency
-    - cleanup
-    - destroy
-    - create
+  prepare_sequence:
     - prepare
+  converge_sequence:
     - converge
-    - side_effect
-    - verify
-    - cleanup
-    - destroy

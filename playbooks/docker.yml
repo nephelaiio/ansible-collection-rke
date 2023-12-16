@@ -22,10 +22,24 @@
         regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
       become: true
 
+    - name: Install Docker repository
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.docker
+        tasks_from: repo
+        apply:
+          become: true
+
+    - name: Query Docker releases
+      ansible.builtin.shell:
+        cmd: "apt-cache madison {{ item }} | awk -F'|' '{ print $2 }' | grep {{ rke_release_docker }} | xargs"
+        executable: "/bin/bash"
+      loop: "{{ rke_docker_packages }}"
+      register: _docker_versions
+
     - name: Install Docker
       ansible.builtin.include_role:
         name: nephelaiio.rke.docker
         apply:
           become: true
       vars:
-        docker_user_manage: true
+        docker_packages: "{{ _docker_versions.results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '=') }}"
