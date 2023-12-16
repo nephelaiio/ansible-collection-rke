@@ -29,6 +29,11 @@
 - name: Verify RKE install
   hosts: rke_control
   tasks:
+    - name: Install JQ
+      ansible.builtin.package:
+        name: jq
+      become: true
+
     - name: Query cluster nodes
       ansible.builtin.shell:
         cmd: "kubectl get node -o name | cut -d'/' -f2"
