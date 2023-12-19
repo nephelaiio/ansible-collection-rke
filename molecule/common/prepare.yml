@@ -1,20 +1,4 @@
 ---
-- name: Prepare KVM host
-  hosts: localhost
-  tasks:
-    - name: Install KVM requirements
-      ansible.builtin.apt:
-        name:
-          - qemu
-          - qemu-kvm
-          - qemu-efi
-          - libvirt-clients
-          - libvirt-daemon-system
-          - libvirt-daemon-system-systemd
-          - python3-libvirt
-      when: ansible_os_family == 'Debian'
-
-
 - name: Prepare KVM guests
   hosts: all
   become: true

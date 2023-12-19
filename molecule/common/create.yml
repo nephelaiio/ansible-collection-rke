@@ -1,13 +1,20 @@
 ---
 - name: Configure KVM host
   hosts: localhost
+  become: true
   vars_files:
     - vars.yml
   tasks:
     - name: Install package requirements
       ansible.builtin.package:
-        name: xorriso
-      become: true
+        name:
+          - qemu
+          - qemu-kvm
+          - qemu-efi
+          - libvirt-clients
+          - libvirt-daemon-system
+          - libvirt-daemon-system-systemd
+          - python3-libvirt
 
     - name: Query libvirt pools
       community.libvirt.virt_pool:
@@ -21,7 +28,6 @@
         owner: root
         group: root
         mode: 0711
-      become: true
 
     - name: Define libvirt pool
       community.libvirt.virt_pool:
@@ -61,7 +67,6 @@
         paths: "{{ _libvirt_pool }}"
         recurse: false
       register: _cache_query
-      become: true
 
     - name: Inspect cached images
       ansible.builtin.set_fact:
@@ -84,12 +89,12 @@
         _basename: "{{ item | urlsplit('path') | basename }}"
         _path: "{{ _libvirt_path }}/{{ _basename }}"
       loop: "{{ _uncached_images | default([]) }}"
-      become: true
 
 
 - name: Create KVM guests
   hosts: all
   gather_facts: false
+  become: true
   vars_files:
     - vars.yml
   tasks:
@@ -121,17 +126,17 @@
                 mode: 0666
                 force: true
               vars:
-                _platform: "{{ molecule_yml.platforms | selectattr('name', 'equalto', inventory_hostname) | first }}"
+                _platforms: "{{ molecule_yml.platforms }}"
+                _platform: "{{ _platforms | selectattr('name', 'equalto', inventory_hostname) | first }}"
                 _disk: "{{ _libvirt_path }}/{{ _platform.name }}.img"
-              become: true
 
             - name: Resize KVM guest disks
               ansible.builtin.command:
                 cmd: qemu-img resize {{ _disk }} {{ _platform.size | default('20G') }}
               vars:
-                _platform: "{{ molecule_yml.platforms | selectattr('name', 'equalto', inventory_hostname) | first }}"
+                _platforms: "{{ molecule_yml.platforms }}"
+                _platform: "{{ _platforms | selectattr('name', 'equalto', inventory_hostname) | first }}"
                 _disk: "{{ _libvirt_path }}/{{ _platform.name }}.img"
-              become: true
 
             - name: Create cloud-init tempdir
               ansible.builtin.tempfile:
@@ -141,7 +146,6 @@
               run_once: true
 
             - name: Create KVM guest
-              become: true
               block:
                 - name: Create instance tempdir
                   ansible.builtin.file:
@@ -218,7 +222,8 @@
       until: dhcp_query is succeeded
 
     - name: Query DHCP leases
-      ansible.builtin.shell: "virsh net-dhcp-leases --network {{ _libvirt_network }} | grep {{ item }} | awk '{print $5}'"
+      ansible.builtin.shell: >
+        virsh net-dhcp-leases --network {{ _libvirt_network }} | grep {{ item }} | awk '{print $5}'
       loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
       register: dhcp_query
 
@@ -239,7 +244,9 @@
 
     - name: Convert instance config dict to a list
       ansible.builtin.set_fact:
-        _instance_conf: "{{ instance_config_dict.results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+        _instance_conf: "{{ _instance_results | map(attribute='ansible_facts.instance_conf_dict') | list }}"
+      vars:
+        _instance_results: "{{ instance_config_dict.results }}"
 
     - name: Dump instance config
       ansible.builtin.copy:
