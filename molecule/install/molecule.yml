@@ -62,3 +62,14 @@ scenario:
     - prepare
   converge_sequence:
     - converge
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
