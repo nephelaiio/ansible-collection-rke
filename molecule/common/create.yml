@@ -112,6 +112,7 @@
             path: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/id_rsa"
           run_once: true
           register: _pubkey
+          become: false
 
         - name: Query active KVM guests
           ansible.builtin.command: virsh list --name
@@ -208,7 +209,6 @@
 
 - name: Build instance config file
   hosts: localhost
-  become: "{{ github_action | default(false) }}"
   vars_files:
     - vars.yml
   tasks:
@@ -218,21 +218,24 @@
       run_once: true
       register: _pubkey
 
-    - name: Wait for DHCP lease assignment
-      ansible.builtin.shell:
-        cmd: "virsh net-dhcp-leases --network {{ _libvirt_network }} | grep {{ item }}"
-        executable: /bin/bash
-      loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
-      register: dhcp_query
-      retries: 6
-      delay: 30
-      until: dhcp_query is succeeded
+    - name: Retrieve platform ip information
+      become: "{{ github_action | default(false) }}"
+      block:
+        - name: Wait for DHCP lease assignment
+          ansible.builtin.shell:
+            cmd: "virsh net-dhcp-leases --network {{ _libvirt_network }} | grep {{ item }}"
+            executable: /bin/bash
+          loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
+          register: dhcp_query
+          retries: 6
+          delay: 30
+          until: dhcp_query is succeeded
 
-    - name: Query DHCP leases
-      ansible.builtin.shell: >
-        virsh net-dhcp-leases --network {{ _libvirt_network }} | grep {{ item }} | awk '{print $5}'
-      loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
-      register: dhcp_query
+        - name: Query DHCP leases
+          ansible.builtin.shell: >
+            virsh net-dhcp-leases --network {{ _libvirt_network }} | grep {{ item }} | awk '{print $5}'
+          loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
+          register: dhcp_query
 
     - name: Populate instance config dict
       ansible.builtin.set_fact:
@@ -259,3 +262,4 @@
       ansible.builtin.copy:
         content: "{{ _instance_conf | ansible.builtin.to_nice_yaml(indent=2) }}"
         dest: "{{ molecule_instance_config }}"
+        mode: 0644
