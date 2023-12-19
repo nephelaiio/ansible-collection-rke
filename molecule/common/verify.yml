@@ -44,7 +44,7 @@
       ansible.builtin.assert:
         that:
           - _kubectl_nodes.stdout_lines | difference(groups['rke']) | length == 0
-          -  groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0
+          - groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0
 
     - name: Query cluster status
       ansible.builtin.shell:
