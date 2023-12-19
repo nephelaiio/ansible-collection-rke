@@ -100,7 +100,7 @@
 - name: Create KVM guests
   hosts: all
   gather_facts: false
-  become: "{{ is_molecule | default(false) }}"
+  become: "{{ github_action | default(false) }}"
   vars_files:
     - vars.yml
   tasks:
@@ -208,7 +208,7 @@
 
 - name: Build instance config file
   hosts: localhost
-  become: "{{ is_molecule | default(false) }}"
+  become: "{{ github_action | default(false) }}"
   vars_files:
     - vars.yml
   tasks:
