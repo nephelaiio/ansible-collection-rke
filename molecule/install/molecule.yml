@@ -64,8 +64,6 @@ scenario:
     - converge
   test_sequence:
     - dependency
-    - cleanup
-    - destroy
     - create
     - prepare
     - converge
