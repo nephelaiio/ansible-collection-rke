@@ -14,13 +14,13 @@
     - name: Install package requirements
       ansible.builtin.package:
         name:
-          - qemu
           - qemu-kvm
           - qemu-efi
           - libvirt-clients
           - libvirt-daemon-system
           - libvirt-daemon-system-systemd
           - python3-libvirt
+      become: true
 
     - name: Query libvirt pools
       community.libvirt.virt_pool:
