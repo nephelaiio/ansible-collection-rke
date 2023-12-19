@@ -55,6 +55,7 @@ provisioner:
       all:
         vars:
           rke_cluster_name: rke.nephelaiio.io
+          rke_ssh_key: "/tmp/id_rsa"
 verifier:
   name: ansible
 scenario:

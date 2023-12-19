@@ -3,6 +3,8 @@ fileignoreconfig:
     ignore_detectors: [filecontent]
   - filename: .github/workflows/release.yml
     ignore_detectors: [filecontent]
+  - filename: molecule/install/molecule.yml
+    ignore_detectors: [filecontent]
   - filename: molecule/common/create.yml
     ignore_detectors: [filecontent]
   - filename: molecule/common/templates/vm.j2.xml

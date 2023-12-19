@@ -1,6 +1,4 @@
 ---
-rke_api_url: "https://api.{{ rke_cluster_name }}"
-
 rke_release_rke: "v1.5.0"
 rke_release_k8s: "v1.25.14"
 rke_release_docker: "20.10.24"
@@ -9,11 +7,11 @@ rke_install_user: "{{ ansible_user_id }}"
 rke_install_root: /opt/rke
 rke_state_file: "{{ rke_install_root }}/cluster.rkestate"
 
-rke_ssh_key: ~/.ssh/id_rsa
-
 rke_bin_rke: /usr/local/bin/rke
 rke_bin_helm: /usr/local/bin/helm
 
-rke_docker_packages:
+rke_default_api_url: "https://api.{{ rke_cluster_name }}"
+rke_default_ssh_key: ~/.ssh/id_rsa
+rke_default_docker_packages:
   - docker-ce
   - docker-ce-cli

@@ -34,9 +34,11 @@
       block:
         - name: Query Docker releases
           ansible.builtin.shell:
-            cmd: "apt-cache madison {{ item }} | awk -F'|' '{ print $2 }' | grep {{ rke_release_docker }} | xargs"
+            cmd: "apt-cache madison {{ item }} | awk -F'|' '{ print $2 }' | grep {{ _release }} | xargs"
             executable: "/bin/bash"
-          loop: "{{ rke_docker_packages }}"
+          vars:
+            _release: "{{ rke_release_docker }}"
+          loop: "{{ rke_docker_packages | default(rke_default_docker_packages) }}"
           register: _docker_versions
 
         - name: Install Docker
@@ -45,4 +47,5 @@
             apply:
               become: true
           vars:
-            docker_packages: "{{ _docker_versions.results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '=') }}"
+            _results: "{{ _docker_versions.results }}"
+            docker_packages: "{{ _results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '=') }}"
