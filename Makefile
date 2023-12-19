@@ -25,6 +25,7 @@ install:
 	@type poetry >/dev/null || pip3 install poetry
 	@type yq || sudo apt-get install -y yq
 	@sudo apt-get install -y python3-libvirt libvirt-dev libvirt-daemon-system libvirt-daemon-driver-qemu libvirt-clients
+	@sudo systemctl start libvirtd
 	@poetry install --no-root
 
 lint: install
