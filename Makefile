@@ -31,6 +31,7 @@ lint: install
 
 requirements: install
 	@rm -rf ${ROLE_DIR}/*
+	@python --version
 	@poetry run ansible-galaxy role install \
 		--force --no-deps \
 		--roles-path ${ROLE_DIR} \
