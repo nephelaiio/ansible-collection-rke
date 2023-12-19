@@ -8,13 +8,13 @@
 
     - name: Create SSH directory
       ansible.builtin.file:
-        path: "{{ (rke_ssh_key | default(rke_default_ssh_key)) | dirname }}"
+        path: "{{ rke_ssh_key | dirname }}"
         state: directory
         mode: 0700
 
     - name: Create SSH keypair
       community.crypto.openssh_keypair:
-        path: "{{ rke_ssh_key | default(rke_default_ssh_key) }}"
+        path: "{{ rke_ssh_key }}"
       register: rke_publickey
 
     - name: Distribute SSH public keys
