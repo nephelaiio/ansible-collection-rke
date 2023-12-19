@@ -24,7 +24,7 @@ test: lint
 install:
 	@type poetry >/dev/null || pip3 install poetry
 	@type yq || sudo apt-get install -y yq
-	@sudo apt-get install -y python3-libvirt libvirt-dev libvirt-daemon-system-systemd libvirt-clients
+	@sudo apt-get install -y python3-libvirt libvirt-dev libvirt-daemon-system-systemd libvirt-daemon-driver-qemu libvirt-clients
 	@poetry install --no-root
 
 lint: install
