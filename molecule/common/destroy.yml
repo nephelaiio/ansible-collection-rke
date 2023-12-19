@@ -1,7 +1,7 @@
 ---
 - name: Configure KVM networking
   hosts: localhost
-  become: "{{ github_action | default(false) }}"
+  become: true
   vars_files:
     - vars.yml
   tasks:

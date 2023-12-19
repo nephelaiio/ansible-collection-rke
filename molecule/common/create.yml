@@ -1,16 +1,10 @@
 ---
 - name: Configure KVM host
   hosts: localhost
-  become: "{{ github_action | default(false) }}"
+  become: true
   vars_files:
     - vars.yml
   tasks:
-    - name: Debug runtime environment
-      ansible.builtin.debug:
-        msg: "Running {{ _message }} job"
-      vars:
-        _message: "{{ github_action | ternary('CI', 'Ad-Hoc') }}"
-
     - name: Install package requirements
       ansible.builtin.package:
         name:
@@ -33,7 +27,8 @@
         state: directory
         owner: root
         group: root
-        mode: 0711
+        mode: 0755
+      become: true
 
     - name: Define libvirt pool
       community.libvirt.virt_pool:
@@ -56,10 +51,11 @@
         xml: "{{ lookup('ansible.builtin.template', 'network.j2.xml') }}"
       vars:
         _network: "{{ _libvirt_network }}"
-        _net_address: "{{ _libvirt_address | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') }}"
-        _net_mask: "{{ _libvirt_address | ansible.utils.ipaddr('netmask') }}"
-        _net_dhcp_start: "{{ _libvirt_address | ansible.utils.ipaddr('2') | ansible.utils.ipaddr('address') }}"
-        _net_dhcp_end: "{{ _libvirt_address | ansible.utils.ipaddr('-2') | ansible.utils.ipaddr('address') }}"
+        _address: "{{ _libvirt_address }}"
+        _net_address: "{{ _address | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') }}"
+        _net_mask: "{{ _address | ansible.utils.ipaddr('netmask') }}"
+        _net_dhcp_start: "{{ _address | ansible.utils.ipaddr('2') | ansible.utils.ipaddr('address') }}"
+        _net_dhcp_end: "{{ _address | ansible.utils.ipaddr('-2') | ansible.utils.ipaddr('address') }}"
       when: _libvirt_network != "default"
 
     - name: Start libvirt network
@@ -100,7 +96,7 @@
 - name: Create KVM guests
   hosts: all
   gather_facts: false
-  become: "{{ github_action | default(false) }}"
+  become: true
   vars_files:
     - vars.yml
   tasks:
@@ -217,9 +213,10 @@
         path: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/id_rsa"
       run_once: true
       register: _pubkey
+      become: false
 
     - name: Retrieve platform ip information
-      become: "{{ github_action | default(false) }}"
+      become: true
       block:
         - name: Wait for DHCP lease assignment
           ansible.builtin.shell:
@@ -262,4 +259,4 @@
       ansible.builtin.copy:
         content: "{{ _instance_conf | ansible.builtin.to_nice_yaml(indent=2) }}"
         dest: "{{ molecule_instance_config }}"
-        mode: 0644
+        mode: 0640

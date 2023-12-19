@@ -54,7 +54,6 @@ provisioner:
     hosts:
       all:
         vars:
-          github_action: "{{ lookup('ansible.builtin.env', 'CI', default=false) }}"
           rke_cluster_name: rke.nephelaiio.io
           rke_ssh_key: "/tmp/id_rsa"
 verifier:
