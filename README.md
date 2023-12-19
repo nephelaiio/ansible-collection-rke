@@ -28,11 +28,11 @@ You can test the collection directly from sources using command `make test`
 
 ## ToDo
 
-Add tests for the following platforms
-* Ubuntu Focal
-* Rocky Linux 9
-* Debian 12
-* Debian 11
+* Add tests for the following platforms
+** Ubuntu Focal
+** Rocky Linux 9
+** Debian 12
+** Debian 11
 
 ``` yaml
 matrix:
@@ -44,6 +44,9 @@ matrix:
     - url: https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2
     - url: https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2
 ```
+
+* Add upgrade tests
+* Add OS update playbook
 
 ## License
 
