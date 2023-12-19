@@ -5,11 +5,6 @@
   vars_files:
     - vars.yml
   tasks:
-    - name: Destroy libvirt pool
-      community.libvirt.virt_pool:
-        state: deleted
-        name: "{{ _libvirt_pool }}"
-
     - name: Query active KVM guests
       ansible.builtin.command: virsh list --name
       register: guest_query
@@ -53,3 +48,8 @@
         command: undefine
         name: "{{ _libvirt_network }}"
       when: _libvirt_network != "default"
+
+    - name: Destroy libvirt pool
+      community.libvirt.virt_pool:
+        state: deleted
+        name: "{{ _libvirt_pool }}"
