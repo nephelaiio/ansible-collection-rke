@@ -15,13 +15,16 @@
 
     - name: Set Consul facts
       ansible.builtin.set_fact:
-        consul_version: "{{ rke_consul_version | default(_consul_release_query.tag) | regex_replace('^v', '') }}"
+        consul_version: "{{ _version | regex_replace('^v', '') }}"
         consul_node_role: "server"
         consul_bootstrap_expect: true
         consul_bootstrap_expect_value: "{{ ansible_play_hosts_all | length }}"
         consul_group_name: "{{ rke_control | default('rke_control') }}"
         consul_datacenter: "{{ rke_cluster_name | regex_replace('[.]', '_') }}"
         consul_encrypt_enable: false
+        consul_install_dependencies: false
+      vars:
+        _version: "{{ rke_consul_version | default(_consul_release_query.tag) }}"
 
     - name: Deploy Consul
       ansible.builtin.include_role:
