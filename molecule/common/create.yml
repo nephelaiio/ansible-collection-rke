@@ -1,10 +1,16 @@
 ---
 - name: Configure KVM host
   hosts: localhost
-  become: true
+  become: "{{ github_action | default(false) }}"
   vars_files:
     - vars.yml
   tasks:
+    - name: Debug runtime environment
+      ansible.builtin.debug:
+        msg: "Running {{ _message }} job"
+      vars:
+        _message: "{{ github_action | ternary('CI', 'Ad-Hoc') }}"
+
     - name: Install package requirements
       ansible.builtin.package:
         name:
@@ -33,7 +39,7 @@
       community.libvirt.virt_pool:
         command: define
         name: "{{ _libvirt_pool }}"
-        xml: "{{ lookup('template', 'pool.j2.xml') }}"
+        xml: "{{ lookup('ansible.builtin.template', 'pool.j2.xml') }}"
       vars:
         _pool: "{{ _libvirt_pool }}"
         _path: "{{ _libvirt_path }}"
@@ -47,7 +53,7 @@
       community.libvirt.virt_net:
         command: define
         name: "{{ _libvirt_network }}"
-        xml: "{{ lookup('template', 'network.j2.xml') }}"
+        xml: "{{ lookup('ansible.builtin.template', 'network.j2.xml') }}"
       vars:
         _network: "{{ _libvirt_network }}"
         _net_address: "{{ _libvirt_address | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') }}"
@@ -94,7 +100,7 @@
 - name: Create KVM guests
   hosts: all
   gather_facts: false
-  become: true
+  become: "{{ is_molecule | default(false) }}"
   vars_files:
     - vars.yml
   tasks:
@@ -175,7 +181,7 @@
 
                 - name: Create KVM guest
                   community.libvirt.virt:
-                    xml: "{{ lookup('template', 'vm.j2.xml') }}"
+                    xml: "{{ lookup('ansible.builtin.template', 'vm.j2.xml') }}"
                     command: define
                   vars:
                     guest_hostname: "{{ inventory_hostname }}"
@@ -202,6 +208,7 @@
 
 - name: Build instance config file
   hosts: localhost
+  become: "{{ is_molecule | default(false) }}"
   vars_files:
     - vars.yml
   tasks:
