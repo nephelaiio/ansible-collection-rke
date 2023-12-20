@@ -1,131 +1,18 @@
 ---
-- name: Install docker
-  hosts: rke
-  become: true
-  vars:
-    rke_install_user: "{{ ansible_user_id }}"
-  collections:
-    - community.general
-  pre_tasks:
-    - name: Install python3 pip
-      ansible.builtin.package:
-        name: python3-pip
+- name: Prepare cluster nodes
+  ansible.builtin.import_playbook: nephelaiio.rke.prepare
 
-    - name: Gather package facts
-      package_facts:
+- name: Deploy Helm
+  ansible.builtin.import_playbook: nephelaiio.rke.helm
 
-    - name: Disable package locks
-      ignore_errors: true
-      become: true
-      block:
+- name: Deploy Docker
+  ansible.builtin.import_playbook: nephelaiio.rke.docker
 
-        - name: Manage yum package lock
-          when: ansible_os_family == 'RedHat'
-          block:
+- name: Configure SSH access
+  ansible.builtin.import_playbook: nephelaiio.rke.ssh
 
-            - name: Install yum version lock support
-              package:
-                name: yum-plugin-versionlock
+- name: Deploy RKE cluster
+  ansible.builtin.import_playbook: nephelaiio.rke.rke
 
-            - name: disable yum package lock
-              yum_versionlock:
-                name: "{{ package_name }}"
-                state: absent
-              vars:
-                package_name: "{{ item }}"
-              loop_control:
-                label: "{{ package_name }}"
-              loop: "{{ [rke_docker_packages] | flatten }}"
-              retries: 2
-              delay: 5
-              register: result
-              until: result is not failed
-              when: package_name in packages
-
-        - name: disable apt package lock
-          dpkg_selections:
-            name: "{{ package_name }}"
-            selection: install
-          vars:
-            package_name: "{{ item.split('=') | first }}"
-          loop_control:
-            label: "{{ package_name }}"
-          loop: "{{ [rke_docker_packages] | flatten }}"
-          retries: 2
-          delay: 5
-          register: result
-          until: result is not failed
-          when:
-            - ansible_os_family == 'Debian'
-            - package_name in packages
-
-  tasks:
-
-    - name: include docker role
-      include_role:
-        name: nephelaiio.docker
-        apply:
-          become: true
-          ignore_errors: true
-      vars:
-        docker_packages: "{{ rke_docker_packages | default(omit) }}"
-
-    - name: configure docker access for rke install user
-      user:
-        append: true
-        name: "{{ rke_install_user }}"
-        groups:
-          - docker
-      become: true
-      tags: user
-
-    - name: disable active swap volume
-      shell: swapoff -a
-      tags: skip_ansible_lint
-      become: true
-
-    - name: disable swap fstab entry
-      lineinfile:
-        state: absent
-        path: /etc/fstab
-        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
-      become: true
-
-  post_tasks:
-
-    - name: disable package locks
-      become: true
-      when:
-        - (rke_package_hold | default('true'))
-        - rke_docker_packages is defined
-      block:
-
-        - name: enable yum package lock
-          yum_versionlock:
-            name: "{{ package_name }}"
-            state: present
-          vars:
-            package_name: "{{ item }}"
-          loop_control:
-            label: "{{ package_name }}"
-          loop: "{{ [rke_docker_packages] | flatten }}"
-          retries: 2
-          delay: 5
-          register: result
-          until: result is not failed
-          when: (ansible_os_family | lower) == 'redhat'
-
-        - name: enable apt package lock
-          dpkg_selections:
-            name: "{{ package_name }}"
-            selection: hold
-          vars:
-            package_name: "{{ item.split('=') | first }}"
-          loop_control:
-            label: "{{ package_name }}"
-          loop: "{{ [rke_docker_packages] | flatten }}"
-          retries: 2
-          delay: 5
-          register: result
-          until: result is not failed
-          when: (ansible_os_family | lower) == 'debian'
+- name: Deploy Consul
+  ansible.builtin.import_playbook: nephelaiio.rke.consul

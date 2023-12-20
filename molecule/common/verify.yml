@@ -1,0 +1,60 @@
+---
+- name: Verify tool installation
+  hosts: rke_control
+  tasks:
+    - name: Check kubectl deployment
+      ansible.builtin.command: kubectl --help
+
+    - name: Check Helm deployment
+      ansible.builtin.command: helm --help
+
+    - name: Check RKE binary
+      ansible.builtin.command: rke --help
+
+
+- name: Verify Docker install
+  hosts: rke
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Check Docker service
+      ansible.builtin.assert:
+        that:
+          - _service in services
+      vars:
+        _service: docker.service
+
+
+- name: Verify RKE install
+  hosts: rke_control
+  tasks:
+    - name: Install JQ
+      ansible.builtin.package:
+        name: jq
+      become: true
+
+    - name: Query cluster nodes
+      ansible.builtin.shell:
+        cmd: "kubectl get node -o name | cut -d'/' -f2"
+        executable: /bin/bash
+      register: _kubectl_nodes
+
+    - name: Check cluster nodes
+      ansible.builtin.assert:
+        that:
+          - _kubectl_nodes.stdout_lines | difference(groups['rke']) | length == 0
+          - groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0
+
+    - name: Query cluster status
+      ansible.builtin.shell:
+        cmd: "kubectl get cs -o json | jq '.items | map(.conditions | map(.type) | .[])'"
+        executable: /bin/bash
+      register: _kubectl_status
+
+    - name: Check cluster status
+      ansible.builtin.assert:
+        that:
+          - _status | reject('equalto', 'Healthy') | length == 0
+      vars:
+        _status: "{{ _kubectl_status.stdout }}"

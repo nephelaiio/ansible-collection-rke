@@ -3,3 +3,17 @@ fileignoreconfig:
     ignore_detectors: [filecontent]
   - filename: .github/workflows/release.yml
     ignore_detectors: [filecontent]
+  - filename: molecule/install/molecule.yml
+    ignore_detectors: [filecontent]
+  - filename: molecule/common/create.yml
+    ignore_detectors: [filecontent]
+  - filename: molecule/common/templates/vm.j2.xml
+    ignore_detectors: [filecontent]
+  - filename: playbooks/templates/cluster.j2.yml
+    ignore_detectors: [filecontent]
+  - filename: playbooks/vars/main.yml
+    ignore_detectors: [filecontent]
+  - filename: playbooks/rke.yml
+    ignore_detectors: [filecontent]
+  - filename: playbooks/ssh.yml
+    ignore_detectors: [filecontent]

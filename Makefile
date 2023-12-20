@@ -1,7 +1,7 @@
 .PHONY: all ${MAKECMDGOALS}
 
 MOLECULE_SCENARIO ?= install
-MOLECULE_DOCKER_IMAGE ?= ubuntu2004
+MOLECULE_KVM_IMAGE ?= https://cloud-images.ubuntu.com/daily/server/jammy/current/jammy-server-cloudimg-amd64.img
 GALAXY_API_KEY ?=
 GITHUB_REPOSITORY ?= $$(git config --get remote.origin.url | cut -d: -f 2 | cut -d. -f 1)
 GITHUB_ORG = $$(echo ${GITHUB_REPOSITORY} | cut -d/ -f 1)
@@ -21,13 +21,15 @@ test: lint
 install:
 	@type poetry >/dev/null || pip3 install poetry
 	@type yq || sudo apt-get install -y yq
-	@poetry install
+	@sudo apt-get install -y libvirt-dev
+	@poetry install --no-root
 
 lint: install
 	poetry run yamllint .
 
 requirements: install
 	@rm -rf ${ROLE_DIR}/*
+	@python --version
 	@poetry run ansible-galaxy role install \
 		--force --no-deps \
 		--roles-path ${ROLE_DIR} \
@@ -39,8 +41,8 @@ requirements: install
 build: requirements
 	@poetry run ansible-galaxy collection build --force
 
-dependency create prepare converge idempotence side-effect verify destroy login reset list:
-	MOLECULE_DOCKER_IMAGE=${MOLECULE_DOCKER_IMAGE} poetry run molecule $@ -s ${MOLECULE_SCENARIO}
+dependency create prepare converge idempotence side-effect verify destroy cleanup login reset list:
+	MOLECULE_KVM_IMAGE=${MOLECULE_KVM_IMAGE} poetry run molecule $@ -s ${MOLECULE_SCENARIO}
 
 ignore:
 	@poetry run ansible-lint --generate-ignore

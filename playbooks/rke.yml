@@ -1,0 +1,116 @@
+---
+- name: Install RKE binary
+  hosts: "{{ rke_control | default('rke_control') }}"
+  tasks:
+    - name: Include collection variables
+      ansible.builtin.include_vars:
+        file: main.yml
+
+    - name: Set install facts
+      ansible.builtin.set_fact:
+        _install_root: "{{ rke_install_root }}"
+        _install_user: "{{ rke_install_user }}"
+
+    - name: Create cluster directory structure
+      ansible.builtin.file:
+        state: directory
+        path: "{{ _install_root }}"
+        owner: "{{ _install_user }}"
+        mode: 0750
+      become: true
+
+    - name: Deploy RKE binary
+      ansible.builtin.get_url:
+        url: "https://github.com/rancher/rke/releases/download/{{ _rke_release_rke }}/rke_linux-amd64"
+        dest: "{{ rke_bin_rke }}"
+        mode: 0755
+        owner: root
+        group: root
+      become: true
+
+    - name: Build RKE cluster file
+      ansible.builtin.template:
+        src: cluster.j2.yml
+        dest: "{{ _install_root }}/cluster.yml"
+        owner: "{{ _install_user }}"
+        mode: 0640
+      vars:
+        _iface_name: "{{ ansible_default_ipv4.interface }}"
+        _control_hosts: "{{ groups[rke_control | default('rke_control')] }}"
+        _worker_hosts: "{{ groups[rke_worker | default('rke_worker')] }}"
+        _provider: "{{ rke_cloud_provider | default('onpremise') }}"
+        _api_url: "{{ _rke_api_url | urlsplit('hostname') }}"
+        _k8s_release: "{{ _rke_release_k8s }}"
+
+    - name: Stat cluster state file
+      ansible.builtin.stat:
+        path: "{{ rke_install_root }}/cluster.rkestate"
+      register: check_rkestate
+
+    - name: Group deployed hosts
+      ansible.builtin.group_by:
+        key: "_rke_{{ 'installed' if (check_rkestate.stat.exists | bool) else 'uninstalled' }}"
+
+
+- name: Deploy RKE cluster
+  hosts: "{{ _targets | first }}"
+  vars:
+    _installed: "{{ groups['_rke_installed'] | default([]) }}"
+    _uninstalled: "{{ groups['_rke_uninstalled'] | default([]) }}"
+    _targets: "{{ (_installed | length > 0) | ternary(_installed, _uninstalled) }}"
+    _kubeconfig: "{{ rke_install_root }}/kube_config_cluster.yml"
+  tasks:
+    - name: Include collection variables
+      ansible.builtin.include_vars:
+        file: main.yml
+
+    - name: Deploy/Update RKE cluster
+      ansible.builtin.command:
+        cmd: "{{ rke_bin_rke }} up"
+        chdir: "{{ rke_install_root }}"
+      retries: 2
+      register: rke_deploy_result
+      until: rke_deploy_result.rc == 0
+
+    - name: Slurp kube config file
+      ansible.builtin.slurp:
+        src: "{{ _kubeconfig }}"
+      register: _kubeconfig_slurp
+
+    - name: Slurp cluster state file
+      ansible.builtin.slurp:
+        src: "{{ rke_state_file }}"
+      register: _clusterstate_slurp
+
+    - name: Set cluster facts
+      ansible.builtin.set_fact:
+        _rke_kubeconfig: "{{ _kubeconfig_slurp['content'] | b64decode }}"
+        _rke_clusterstate: "{{ _clusterstate_slurp['content'] | b64decode }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+
+- name: Distribute cluster files to control nodes
+  hosts: "{{ rke_control | default('rke_control') }}"
+  vars:
+    _kubeconfig_target: "~/.kube/config"
+  tasks:
+    - name: Include collection variables
+      ansible.builtin.include_vars:
+        file: main.yml
+
+    - name: Create remote kube_config directory
+      ansible.builtin.file:
+        path: "{{ _kubeconfig_target | dirname }}"
+        state: directory
+        mode: 0750
+
+    - name: Distribute kube config to all nodes
+      ansible.builtin.copy:
+        dest: "{{ _kubeconfig_target }}"
+        content: "{{ hostvars['localhost']['_rke_kubeconfig'] }}"
+
+    - name: Distribute cluster state to all nodes
+      ansible.builtin.copy:
+        dest: "{{ rke_state_file }}"
+        content: "{{ hostvars['localhost']['_rke_clusterstate'] }}"

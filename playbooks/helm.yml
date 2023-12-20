@@ -1,0 +1,36 @@
+---
+- name: Prepare RKE cluster members
+  hosts: "{{ rke_control | default('rke_control') }}"
+  become: true
+  tasks:
+    - name: Include collection variables
+      ansible.builtin.include_vars:
+        file: main.yml
+
+    - name: Query Helm releases
+      community.general.github_release:
+        user: helm
+        repo: helm
+        action: latest_release
+        token: "{{ lookup('ansible.builtin.env', 'GITHUB_TOKEN') | default(omit) }}"
+      register: _helm_release_query
+      delegate_to: localhost
+
+    - name: Set target Helm release
+      ansible.builtin.set_fact:
+        helm_version: "{{ rke_helm_version | default(_helm_release_query.tag) }}"
+
+    - name: Configure K8s repository
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.k8s_repo
+      vars:
+        k8s_repo_release: "{{ _rke_release_k8s }}"
+
+    - name: Install kubectl
+      ansible.builtin.package:
+        name: kubectl
+        state: latest
+
+    - name: Deploy Helm
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.helm
