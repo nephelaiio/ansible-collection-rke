@@ -20,13 +20,11 @@
       ansible.builtin.set_fact:
         helm_version: "{{ rke_helm_version | default(_helm_release_query.tag) }}"
 
-    - name: Set target Kubernetes repo release
-      ansible.builtin.set_fact:
-        k8s_repo_release: "{{ rke_release_k8s }}"
-
     - name: Configure K8s repository
       ansible.builtin.include_role:
         name: nephelaiio.rke.k8s_repo
+      vars:
+        k8s_repo_release: "{{ _rke_release_k8s }}"
 
     - name: Install kubectl
       ansible.builtin.package:

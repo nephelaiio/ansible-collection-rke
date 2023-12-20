@@ -21,7 +21,7 @@
 
     - name: Deploy RKE binary
       ansible.builtin.get_url:
-        url: "https://github.com/rancher/rke/releases/download/{{ rke_release_rke }}/rke_linux-amd64"
+        url: "https://github.com/rancher/rke/releases/download/{{ _rke_release_rke }}/rke_linux-amd64"
         dest: "{{ rke_bin_rke }}"
         mode: 0755
         owner: root
@@ -39,7 +39,7 @@
         _control_hosts: "{{ groups[rke_control | default('rke_control')] }}"
         _worker_hosts: "{{ groups[rke_worker | default('rke_worker')] }}"
         _provider: "{{ rke_cloud_provider | default('onpremise') }}"
-        _api_url: "{{ rke_api_url | urlsplit('hostname') }}"
+        _api_url: "{{ _rke_api_url | urlsplit('hostname') }}"
 
     - name: Stat cluster state file
       ansible.builtin.stat:
