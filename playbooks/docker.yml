@@ -37,7 +37,7 @@
             cmd: "apt-cache madison {{ item }} | awk -F'|' '{ print $2 }' | grep {{ _release }} | xargs"
             executable: "/bin/bash"
           vars:
-            _release: "{{ rke_release_docker }}"
+            _release: "{{ _rke_release_docker }}"
           loop: "{{ rke_docker_packages }}"
           register: _docker_versions
 

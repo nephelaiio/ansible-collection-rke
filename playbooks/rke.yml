@@ -40,6 +40,7 @@
         _worker_hosts: "{{ groups[rke_worker | default('rke_worker')] }}"
         _provider: "{{ rke_cloud_provider | default('onpremise') }}"
         _api_url: "{{ _rke_api_url | urlsplit('hostname') }}"
+        _k8s_release: "{{ _rke_release_k8s }}"
 
     - name: Stat cluster state file
       ansible.builtin.stat:

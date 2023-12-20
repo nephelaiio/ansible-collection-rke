@@ -28,6 +28,9 @@ ssh_key_path: {{ rke_ssh_key }}
 # Set the name of the Kubernetes cluster
 cluster_name: {{ _cluster_name | default('rke') }}
 
+# Set the K8s version to deploy
+kubernetes_version: {{ _k8s_release }}
+
 {% if _provider is search('aws') %}
 cloud_provider:
   name: {{ _provider }}
