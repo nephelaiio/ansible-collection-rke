@@ -41,7 +41,7 @@ requirements: install
 build: requirements
 	@poetry run ansible-galaxy collection build --force
 
-dependency create prepare converge idempotence side-effect verify destroy login reset list:
+dependency create prepare converge idempotence side-effect verify destroy cleanup login reset list:
 	MOLECULE_KVM_IMAGE=${MOLECULE_KVM_IMAGE} poetry run molecule $@ -s ${MOLECULE_SCENARIO}
 
 ignore:
