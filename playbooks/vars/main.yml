@@ -7,9 +7,9 @@ rke_defaults_release_docker: "20.10.24"
 
 # Overridable values
 _rke_api_url: "{{ rke_api_url | default(rke_defaults_url_api) }}"
-_rke_release_rke: "{{ rke_release_rke | default(rke_default_release_rke) }}"
-_rke_release_k8s: "{{ rke_release_k8s | default(rke_default_release_k8s) }}"
-_rke_release_docker: "{{ rke_release_docker | default(rke_default_release_docker) }}"
+_rke_release_rke: "{{ rke_release_rke | default(rke_defaults_release_rke) }}"
+_rke_release_k8s: "{{ rke_release_k8s | default(rke_defaults_release_k8s) }}"
+_rke_release_docker: "{{ rke_release_docker | default(rke_defaults_release_docker) }}"
 
 # Hardcoded values
 rke_install_user: "{{ ansible_user_id }}"
