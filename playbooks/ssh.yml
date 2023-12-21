@@ -1,11 +1,9 @@
 ---
 - name: Configure SSH access
   hosts: "{{ rke_control | default('rke_control') }}:{{ rke_worker | default('rke_worker') }}"
+  vars_files:
+    - main.yml
   tasks:
-    - name: Include collection variables
-      ansible.builtin.include_vars:
-        file: main.yml
-
     - name: Create SSH directory
       ansible.builtin.file:
         path: "{{ rke_ssh_key | dirname }}"

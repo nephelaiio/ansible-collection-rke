@@ -45,7 +45,7 @@ provisioner:
     converge: ../common/install.yml
     cleanup: ../common/cleanup.yml
     destroy: ../common/destroy.yml
-    side_effect: ../common/install.yml
+    side_effect: ../common/k8s.yml
     verify: ../common/verify.yml
   config_options:
     defaults:
@@ -69,7 +69,6 @@ scenario:
     - create
     - prepare
     - converge
-    - verify
     - side_effect
     - verify
     - destroy

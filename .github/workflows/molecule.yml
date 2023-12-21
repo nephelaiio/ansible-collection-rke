@@ -16,6 +16,7 @@ jobs:
       matrix:
         scenario:
           - name: install
+          - name: k8s
         image:
           - url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
     steps:

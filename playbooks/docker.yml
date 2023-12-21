@@ -1,15 +1,9 @@
 ---
 - name: Install docker
   hosts: "{{ rke | default('rke') }}"
+  vars_files:
+    - main.yml
   tasks:
-    - name: Include collection variables
-      ansible.builtin.include_vars:
-        file: main.yml
-
-    - name: Set install facts
-      ansible.builtin.set_fact:
-        docker_user: "{{ rke_install_user }}"
-
     - name: Disable active swap volume
       ansible.builtin.shell: swapoff -a
       tags: skip_ansible_lint
@@ -48,4 +42,5 @@
               become: true
           vars:
             _results: "{{ _docker_versions.results }}"
+            docker_user: "{{ rke_install_user }}"
             docker_packages: "{{ _results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '=') }}"
