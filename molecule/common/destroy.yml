@@ -1,5 +1,5 @@
 ---
-- name: Configure KVM networking
+- name: Destroy KVM guests
   hosts: localhost
   become: true
   vars_files:

@@ -52,10 +52,11 @@
       vars:
         _network: "{{ _libvirt_network }}"
         _address: "{{ _libvirt_address }}"
+        _dhcp: "{{ _libvirt_dhcp }}"
         _net_address: "{{ _address | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') }}"
         _net_mask: "{{ _address | ansible.utils.ipaddr('netmask') }}"
-        _net_dhcp_start: "{{ _address | ansible.utils.ipaddr('2') | ansible.utils.ipaddr('address') }}"
-        _net_dhcp_end: "{{ _address | ansible.utils.ipaddr('-2') | ansible.utils.ipaddr('address') }}"
+        _net_dhcp_start: "{{ _dhcp | ansible.utils.ipaddr('2') | ansible.utils.ipaddr('address') }}"
+        _net_dhcp_end: "{{ _dhcp | ansible.utils.ipaddr('-2') | ansible.utils.ipaddr('address') }}"
       when: _libvirt_network != "default"
 
     - name: Start libvirt network

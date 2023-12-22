@@ -57,6 +57,10 @@ provisioner:
         vars:
           rke_cluster_name: rke.nephelaiio.io
           rke_ssh_key: "/tmp/id_rsa"
+          molecule_libvirt_address: '172.31.255.1/24'
+          molecule_libvirt_prefix: "{{ molecule_libvirt_address | ansible.utils.ipaddr('prefix') }}"
+          molecule_rke_prefix: "{{ (molecule_libvirt_prefix | int) + 1 }}"
+          molecule_dhcp: "{{ molecule_libvirt_address | ansible.utils.ipsubnet(molecule_rke_prefix, 0) }}"
 verifier:
   name: ansible
 scenario:
@@ -64,6 +68,10 @@ scenario:
     - prepare
   converge_sequence:
     - converge
+  destroy_sequence:
+    - destroy
+  cleanup_sequence:
+    - cleanup
   test_sequence:
     - dependency
     - create
