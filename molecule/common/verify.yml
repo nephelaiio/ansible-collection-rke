@@ -40,11 +40,22 @@
         executable: /bin/bash
       register: _kubectl_nodes
 
-    - name: Check cluster nodes
-      ansible.builtin.assert:
-        that:
-          - _kubectl_nodes.stdout_lines | difference(groups['rke']) | length == 0
-          - groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0
+    - name: Verify cluster nodes
+      block:
+        - name: Check cluster node status
+          ansible.builtin.assert:
+            that:
+              - groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0
+      rescue:
+        - name: Debug node registrations
+          ansible.builtin.debug:
+            msg: "Fond nodes [{{ _kubectl_nodes.stdout_lines.join(', ') }}] registered to the cluster"
+
+        - name: Debug unregistered nodes
+          ansible.builtin.debug:
+            msg: "Nodes [{{ _absent.join(', ') }}] are not registered to the cluster"
+          vars:
+            _absent: "{{ groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0 }}"
 
     - name: Query cluster status
       ansible.builtin.shell:
