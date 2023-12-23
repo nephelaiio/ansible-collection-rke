@@ -63,6 +63,7 @@ provisioner:
           molecule_metallb: "{{ molecule_libvirt_address | ansible.utils.ipsubnet(molecule_rke_prefix, 1) }}"
           molecule_libvirt_dhcp: "{{ molecule_dhcp }}"
           rke_ssh_key: "/tmp/id_rsa"
+          k8s_certmanager_issuer_name: local
           # Required k8s params
           rke_cluster_name: rke.nephelaiio.io
           rke_address_pool_public: "{{ molecule_metallb | ansible.utils.ipsubnet(molecule_mlb_prefix, 0)}}"
