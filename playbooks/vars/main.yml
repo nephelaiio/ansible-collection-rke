@@ -21,3 +21,4 @@ rke_ssh_key: ~/.ssh/id_rsa
 rke_docker_packages:
   - docker-ce
   - docker-ce-cli
+rke_k8s_helm_bin: /usr/local/bin/helm

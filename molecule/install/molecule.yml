@@ -55,15 +55,14 @@ provisioner:
     hosts:
       all:
         vars:
-          rke_cluster_name: rke.nephelaiio.io
-          rke_ssh_key: "/tmp/id_rsa"
           molecule_libvirt_address: '172.31.254.1/24'
           molecule_libvirt_prefix: "{{ molecule_libvirt_address | ansible.utils.ipaddr('prefix') }}"
           molecule_rke_prefix: "{{ (molecule_libvirt_prefix | int) + 1 }}"
           molecule_dhcp: "{{ molecule_libvirt_address | ansible.utils.ipsubnet(molecule_rke_prefix, 0) }}"
           molecule_metallb: "{{ molecule_libvirt_address | ansible.utils.ipsubnet(molecule_rke_prefix, 1) }}"
           molecule_libvirt_dhcp: "{{ molecule_dhcp }}"
-          k8s_address_pool_private_iprange: "{{ molecule_metallb }}"
+          rke_cluster_name: rke.nephelaiio.io
+          rke_ssh_key: "/tmp/id_rsa"
 verifier:
   name: ansible
 scenario:

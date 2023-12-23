@@ -32,3 +32,5 @@
     - name: Deploy Helm
       ansible.builtin.include_role:
         name: nephelaiio.rke.helm
+      vars:
+        helm_bin_path: "{{ rke_k8s_helm_bin }}"

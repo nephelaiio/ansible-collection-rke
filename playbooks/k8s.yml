@@ -3,19 +3,38 @@
   hosts: "{{ rke_control | default('rke_control') }}"
   vars_files:
     - main.yml
+  vars:
+    k8s_helm_bin: "{{ rke_k8s_helm_bin }}"
+    k8s_metallb_speaker_secret: "{{ rke_metallb_speaker_secret }}"
+    k8s_longhorn_deploy: "{{ rke_k8s_longhorn_deploy | default(false) }}"
+    k8s_nginx_deploy: "{{ rke_k8s_nginx_deploy | default(true) }}"
+    k8s_opensearch_deploy: "{{ rke_k8s_opensearch_deploy | default(true) }}"
+    k8s_mysql_deploy: "{{ rke_k8s_mysql_deploy | default(true) }}"
+    k8s_olm_deploy: false
+    k8s_strimzi_deploy: "{{ rke_k8s_strimzi_deploy | default(true) }}"
+    k8s_zalando_deploy: "{{ rke_k8s_zalando_deploy | default(true) }}"
+    k8s_argocd_deploy: "{{ rke_k8s_argocd_deploy | default(true) }}"
+    k8s_cluster_type: "{{ rke_k8s_cluster_type | default('local') }}"
+    k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
   tasks:
-    - name: Deploy k8s components
+    - name: Deploy required pips
+      ansible.builtin.pip:
+        name:
+          - openshift
+          - kubernetes
+        state: latest
+        extra_args: --user
+
+    - name: Deploy local k8s with private-only address pools
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.k8s
+      when: rke_address_pool_public is not defined
       run_once: true
-      block:
-        - name: Include k8s role
-          ansible.builtin.include_role:
-            name: nephelaiio.rke.k8s
-          vars:
-            k8s_longhorn_deploy: "{{ rke_k8s_longhorn_deploy | default(false) }}"
-            k8s_nginx_deploy: "{{ rke_k8s_nginx_deploy | default(true) }}"
-            k8s_opensearch_deploy: "{{ rke_k8s_opensearch_deploy | default(true) }}"
-            k8s_mysql_deploy: "{{ rke_k8s_mysql_deploy | default(true) }}"
-            k8s_olm_deploy: false
-            k8s_strimzi_deploy: "{{ rke_k8s_strimzi_deploy | default(true) }}"
-            k8s_zalando_deploy: "{{ rke_k8s_zalando_deploy | default(true) }}"
-            k8s_argocd_deploy: "{{ rke_k8s_argocd_deploy | default(true) }}"
+
+    - name: Deploy local k8s with public and private address pools
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.k8s
+      vars:
+        k8s_address_pool_public_iprange: "{{ rke_address_pool_public }}"
+      when: rke_address_pool_public is defined
+      run_once: true

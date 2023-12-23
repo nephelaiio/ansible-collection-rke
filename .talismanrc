@@ -19,3 +19,5 @@ fileignoreconfig:
     ignore_detectors: [filecontent]
   - filename: playbooks/ssh.yml
     ignore_detectors: [filecontent]
+  - filename: playbooks/k8s.yml
+    ignore_detectors: [filecontent]
