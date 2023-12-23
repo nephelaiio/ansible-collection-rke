@@ -90,21 +90,19 @@
   hosts: "{{ rke_control | default('rke_control') }}"
   vars_files:
     - main.yml
-  vars:
-    _kubeconfig_target: "~/.kube/config"
   tasks:
     - name: Create remote kube_config directory
       ansible.builtin.file:
-        path: "{{ _kubeconfig_target | dirname }}"
+        path: "{{ rke_kubeconfig | dirname }}"
         state: directory
         mode: 0750
 
     - name: Distribute kube config to all nodes
       ansible.builtin.copy:
-        dest: "{{ _kubeconfig_target }}"
+        dest: "{{ rke_kubeconfig }}"
         content: "{{ hostvars['localhost']['_rke_kubeconfig'] }}"
 
     - name: Distribute cluster state to all nodes
       ansible.builtin.copy:
-        dest: "{{ rke_state_file }}"
+        dest: "{{ rke_kubeconfig }}"
         content: "{{ hostvars['localhost']['_rke_clusterstate'] }}"

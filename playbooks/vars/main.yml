@@ -18,6 +18,7 @@ rke_state_file: "{{ rke_install_root }}/cluster.rkestate"
 rke_bin_rke: /usr/local/bin/rke
 rke_bin_helm: /usr/local/bin/helm
 rke_ssh_key: ~/.ssh/id_rsa
+rke_kubeconfig: ~/.kube/config
 rke_docker_packages:
   - docker-ce
   - docker-ce-cli
