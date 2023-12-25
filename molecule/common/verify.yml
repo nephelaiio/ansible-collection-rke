@@ -49,13 +49,13 @@
       rescue:
         - name: Debug node registrations
           ansible.builtin.debug:
-            msg: "Fond nodes [{{ ', '.join(_kubectl_nodes.stdout_lines) }}] registered to the cluster"
+            msg: "Found nodes [{{ ', '.join(_kubectl_nodes.stdout_lines) }}] registered to the cluster"
 
         - name: Debug unregistered nodes
           ansible.builtin.debug:
             msg: "Nodes [{{ ', '.join(_absent) }}] are not registered to the cluster"
           vars:
-            _absent: "{{ groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0 }}"
+            _absent: "{{ groups['rke'] | difference(_kubectl_nodes.stdout_lines) }}"
 
     - name: Query cluster status
       ansible.builtin.shell:
