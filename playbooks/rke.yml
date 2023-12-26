@@ -42,7 +42,7 @@
 
     - name: Stat cluster state file
       ansible.builtin.stat:
-        path: "{{ rke_install_root }}/cluster.rkestate"
+        path: "{{ rke_state_file }}"
       register: check_rkestate
 
     - name: Group deployed hosts
@@ -80,7 +80,8 @@
 
     - name: Set cluster facts
       ansible.builtin.set_fact:
-        _rke_kubeconfig: "{{ _kubeconfig_slurp['content'] | b64decode }}"
+        _rke_kubeconfig_content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
+        _rke_kubeconfig_path: "~{{ ansible_user_id }}/.kube/config"
         _rke_clusterstate: "{{ _clusterstate_slurp['content'] | b64decode }}"
       delegate_to: localhost
       delegate_facts: true
@@ -93,16 +94,16 @@
   tasks:
     - name: Create remote kube_config directory
       ansible.builtin.file:
-        path: "{{ rke_kubeconfig | dirname }}"
+        path: "{{ _rke_kubeconfig_path | dirname }}"
         state: directory
         mode: 0750
 
     - name: Distribute kube config to all nodes
       ansible.builtin.copy:
-        dest: "{{ rke_kubeconfig }}"
-        content: "{{ hostvars['localhost']['_rke_kubeconfig'] }}"
+        dest: "{{ _rke_kubeconfig_path }}"
+        content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
 
     - name: Distribute cluster state to all nodes
       ansible.builtin.copy:
-        dest: "{{ rke_kubeconfig }}"
+        dest: "{{ rke_state_file }}"
         content: "{{ hostvars['localhost']['_rke_clusterstate'] }}"

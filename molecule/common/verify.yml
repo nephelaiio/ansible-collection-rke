@@ -11,6 +11,28 @@
     - name: Check RKE binary
       ansible.builtin.command: rke --help
 
+    - name: Stat kubeconfig file
+      ansible.builtin.stat:
+        path: "{{ rke_kubeconfig }}"
+      register: _kubeconfig_stat
+
+    - name: Check kubeconfig file
+      ansible.builtin.assert:
+        fail_msg: "Unable to locate kubeconfig file at path {{ rke_kubeconfig }}"
+        that:
+          - _kubeconfig_stat.stat.exists
+
+    - name: Stat cluster state file
+      ansible.builtin.stat:
+        path: "{{ rke_state_file }}"
+      register: _clusterstate_stat
+
+    - name: Check cluster state file
+      ansible.builtin.assert:
+        fail_msg: "Unable to locate kubeconfig file at path {{ rke_state_file }}"
+        that:
+          - _clusterstate_stat.stat.exists
+
 
 - name: Verify Docker install
   hosts: rke
