@@ -1,6 +1,11 @@
 ---
 - name: Verify tool installation
   hosts: rke_control
+  any_errors_fatal: true
+  vars:
+    _rke_kubeconfig_path: "~{{ ansible_user_id }}/.kube/config"
+  vars_files:
+    - ../../playbooks/vars/main.yml
   tasks:
     - name: Check kubectl deployment
       ansible.builtin.command: kubectl --help
@@ -13,12 +18,12 @@
 
     - name: Stat kubeconfig file
       ansible.builtin.stat:
-        path: "{{ rke_kubeconfig }}"
+        path: "{{ _rke_kubeconfig_path }}"
       register: _kubeconfig_stat
 
     - name: Check kubeconfig file
       ansible.builtin.assert:
-        fail_msg: "Unable to locate kubeconfig file at path {{ rke_kubeconfig }}"
+        fail_msg: "Unable to locate kubeconfig file at path {{ _rke_kubeconfig_path }}"
         that:
           - _kubeconfig_stat.stat.exists
 
@@ -36,6 +41,7 @@
 
 - name: Verify Docker install
   hosts: rke
+  any_errors_fatal: true
   tasks:
     - name: Gather service facts
       ansible.builtin.service_facts:
@@ -50,6 +56,7 @@
 
 - name: Verify RKE install
   hosts: rke_control
+  any_errors_fatal: true
   tasks:
     - name: Install JQ
       ansible.builtin.package:

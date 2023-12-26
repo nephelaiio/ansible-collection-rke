@@ -94,7 +94,7 @@
   tasks:
     - name: Create remote kube_config directory
       ansible.builtin.file:
-        path: "{{ _rke_kubeconfig_path | dirname }}"
+        path: "{{ hostvars['localhost']['_rke_kubeconfig_path'] | dirname }}"
         state: directory
         mode: 0750
 
