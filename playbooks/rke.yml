@@ -100,7 +100,7 @@
 
     - name: Distribute kube config to all nodes
       ansible.builtin.copy:
-        dest: "{{ _rke_kubeconfig_path }}"
+        dest: "{{ hostvars['localhost']['_rke_kubeconfig_path'] }}"
         content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
 
     - name: Distribute cluster state to all nodes
