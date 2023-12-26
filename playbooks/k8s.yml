@@ -16,6 +16,7 @@
     k8s_argocd_deploy: "{{ rke_k8s_argocd_deploy | default(true) }}"
     k8s_cluster_type: "{{ rke_k8s_cluster_type | default('local') }}"
     k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
+    k8s_kubeconfig: "{{ _rke_install_config }}"
   tasks:
     - name: Deploy required pips
       ansible.builtin.pip:

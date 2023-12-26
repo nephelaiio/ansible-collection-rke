@@ -58,7 +58,6 @@
     _installed: "{{ groups['_rke_installed'] | default([]) }}"
     _uninstalled: "{{ groups['_rke_uninstalled'] | default([]) }}"
     _targets: "{{ (_installed | length > 0) | ternary(_installed, _uninstalled) }}"
-    _kubeconfig: "{{ rke_install_root }}/kube_config_cluster.yml"
   tasks:
     - name: Deploy/Update RKE cluster
       ansible.builtin.command:
@@ -70,7 +69,7 @@
 
     - name: Slurp kube config file
       ansible.builtin.slurp:
-        src: "{{ _kubeconfig }}"
+        src: "{{ _rke_install_config }}"
       register: _kubeconfig_slurp
 
     - name: Slurp cluster state file
