@@ -16,6 +16,8 @@
     k8s_argocd_deploy: "{{ rke_k8s_argocd_deploy | default(true) }}"
     k8s_cluster_type: "{{ rke_k8s_cluster_type | default('local') }}"
     k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
+    k8s_retry_delay: "{{ _rke_retry_num }}"
+    k8s_retry_num: "{{ _rke_retry_delay }}"
   tasks:
     - name: Slurp kube config file
       ansible.builtin.slurp:
