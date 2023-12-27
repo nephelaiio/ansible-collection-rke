@@ -17,20 +17,6 @@
     k8s_cluster_type: "{{ rke_k8s_cluster_type | default('local') }}"
     k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
   tasks:
-    - name: Deploy required pips
-      ansible.builtin.pip:
-        name:
-          - openshift
-          - kubernetes
-        state: latest
-        extra_args: --user
-
-    - name: Deploy local k8s with private-only address pools
-      ansible.builtin.include_role:
-        name: nephelaiio.rke.k8s
-      when: rke_address_pool_public is not defined
-      run_once: true
-
     - name: Slurp kube config file
       ansible.builtin.slurp:
         src: "{{ _rke_install_config }}"
@@ -60,6 +46,7 @@
             name: nephelaiio.rke.k8s
           vars:
             k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
+          when: rke_address_pool_public is not defined
           run_once: true
 
         - name: Deploy k8s with public+private ipranges
@@ -68,6 +55,7 @@
           vars:
             k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
             k8s_address_pool_public_iprange: "{{ rke_address_pool_public }}"
+          when: rke_address_pool_public is defined
           run_once: true
 
       always:
