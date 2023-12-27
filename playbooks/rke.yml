@@ -122,10 +122,10 @@
         content: "{{ hostvars['localhost']['_rke_clusterstate'] }}"
         mode: 0600
 
-  - name: Wait for cluster startup
-    ansible.builtin.command:
-      cmd: kubectl get nodes
-    register: _kubectl_query
-    retries: "{{ _rke_retry_num }}"
-    delay: "{{ _rke_retry_delay }}"
-    until: _kubectl_query is succeeded
+    - name: Wait for cluster startup
+      ansible.builtin.command:
+        cmd: kubectl get nodes
+      register: _kubectl_query
+      retries: "{{ _rke_retry_num }}"
+      delay: "{{ _rke_retry_delay }}"
+      until: _kubectl_query is succeeded
