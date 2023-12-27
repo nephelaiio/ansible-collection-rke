@@ -31,7 +31,7 @@
         src: cluster.j2.yml
         dest: "{{ _install_root }}/cluster.yml"
         owner: "{{ _install_user }}"
-        mode: 0640
+        mode: 0600
       vars:
         _iface_name: "{{ ansible_default_ipv4.interface }}"
         _control_hosts: "{{ groups[rke_control | default('rke_control')] }}"
@@ -106,17 +106,17 @@
       ansible.builtin.copy:
         dest: "{{ _rke_install_config }}"
         content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
-        mode: 0640
+        mode: 0600
       when: not _installconfig_stat.stat.exists
 
     - name: Distribute user kubeconfig to all nodes
       ansible.builtin.copy:
         dest: "{{ hostvars['localhost']['_rke_kubeconfig_path'] }}"
         content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
-        mode: 0640
+        mode: 0600
 
     - name: Distribute cluster state to all nodes
       ansible.builtin.copy:
         dest: "{{ rke_state_file }}"
         content: "{{ hostvars['localhost']['_rke_clusterstate'] }}"
-        mode: 0640
+        mode: 0600
