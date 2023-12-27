@@ -196,7 +196,6 @@
                   ansible.builtin.file:
                     dest: "{{ libvirt_tmpdir.path }}"
                     state: absent
-                  when: false
 
         - name: Start KVM guest
           community.libvirt.virt:

@@ -91,7 +91,7 @@
   vars_files:
     - main.yml
   tasks:
-    - name: Create remote kube_config directory
+    - name: Create remote kubeconfig directory
       ansible.builtin.file:
         path: "{{ hostvars['localhost']['_rke_kubeconfig_path'] | dirname }}"
         state: directory
