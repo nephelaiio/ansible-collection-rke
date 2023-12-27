@@ -97,7 +97,18 @@
         state: directory
         mode: 0750
 
-    - name: Distribute kube config to all nodes
+    - name: Stat install kubeconfig
+      ansible.builtin.stat:
+        path: "{{ rke_state_file }}"
+      register: _installconfig_stat
+
+    - name: Distribute install kubeconfig to all nodes
+      ansible.builtin.copy:
+        dest: "{{ rke_state_file }}"
+        content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
+      when: no _installconfig_stat.stat.exists
+
+    - name: Distribute user kubeconfig to all nodes
       ansible.builtin.copy:
         dest: "{{ hostvars['localhost']['_rke_kubeconfig_path'] }}"
         content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
