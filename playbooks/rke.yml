@@ -106,7 +106,7 @@
       ansible.builtin.copy:
         dest: "{{ rke_state_file }}"
         content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
-      when: no _installconfig_stat.stat.exists
+      when: not _installconfig_stat.stat.exists
 
     - name: Distribute user kubeconfig to all nodes
       ansible.builtin.copy:
