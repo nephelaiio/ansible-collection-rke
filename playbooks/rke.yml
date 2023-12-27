@@ -104,16 +104,19 @@
 
     - name: Distribute install kubeconfig to all nodes
       ansible.builtin.copy:
-        dest: "{{ rke_state_file }}"
+        dest: "{{ _rke_install_config }}"
         content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
+        mode: 0640
       when: not _installconfig_stat.stat.exists
 
     - name: Distribute user kubeconfig to all nodes
       ansible.builtin.copy:
         dest: "{{ hostvars['localhost']['_rke_kubeconfig_path'] }}"
         content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
+        mode: 0640
 
     - name: Distribute cluster state to all nodes
       ansible.builtin.copy:
         dest: "{{ rke_state_file }}"
         content: "{{ hostvars['localhost']['_rke_clusterstate'] }}"
+        mode: 0640
