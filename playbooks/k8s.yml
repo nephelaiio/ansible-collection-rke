@@ -34,7 +34,7 @@
       block:
         - name: Set kubeconfig facts
           ansible.builtin.set_fact:
-            k8s_kubeconfig: "{{ kubeconfig_tmpdir }}/config"
+            k8s_kubeconfig: "{{ kubeconfig_tmpdir.path }}/config"
 
         - name: Create local kubeconfig
           ansible.builtin.copy:
