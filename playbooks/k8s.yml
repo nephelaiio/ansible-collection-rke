@@ -22,16 +22,16 @@
         src: "{{ _rke_install_config }}"
       register: _kubeconfig_slurp
 
-    - name: Create kubeconfig tempdir
-      ansible.builtin.tempfile:
-        state: directory
-        prefix: kubeconfig
-      register: kubeconfig_tmpdir
-      run_once: true
-
     - name: Deploy k8s components
+      run_once: true
       delegate_to: localhost
       block:
+        - name: Create kubeconfig tempdir
+          ansible.builtin.tempfile:
+            state: directory
+            prefix: kubeconfig
+          register: kubeconfig_tmpdir
+
         - name: Set kubeconfig facts
           ansible.builtin.set_fact:
             k8s_kubeconfig: "{{ kubeconfig_tmpdir.path }}/config"
@@ -57,7 +57,6 @@
             k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
             k8s_address_pool_public_iprange: "{{ rke_address_pool_public }}"
           when: rke_address_pool_public is defined
-          run_once: true
 
       always:
         - name: Destroy kubeconfig tempdir
