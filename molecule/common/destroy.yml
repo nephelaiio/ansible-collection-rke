@@ -48,3 +48,10 @@
         command: undefine
         name: "{{ _libvirt_network }}"
       when: _libvirt_network != "default"
+
+    - name: Delete host file entries
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: ".*{{ item }}.*"
+        state: absent
+      loop: "{{ molecule_yml.platforms | map(attribute='name') }}"
