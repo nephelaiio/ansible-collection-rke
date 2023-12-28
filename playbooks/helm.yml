@@ -1,6 +1,6 @@
 ---
 - name: Prepare RKE cluster members
-  hosts: "{{ rke_control | default('rke_control') }}"
+  hosts: "{{ rke_control | default('rke_control') }}:localhost"
   become: true
   vars_files:
     - main.yml
