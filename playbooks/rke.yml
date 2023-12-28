@@ -1,11 +1,9 @@
 ---
 - name: Install RKE binary
   hosts: "{{ rke_control | default('rke_control') }}"
+  vars_files:
+    - main.yml
   tasks:
-    - name: Include collection variables
-      ansible.builtin.include_vars:
-        file: main.yml
-
     - name: Set install facts
       ansible.builtin.set_fact:
         _install_root: "{{ rke_install_root }}"
@@ -33,7 +31,7 @@
         src: cluster.j2.yml
         dest: "{{ _install_root }}/cluster.yml"
         owner: "{{ _install_user }}"
-        mode: 0640
+        mode: 0600
       vars:
         _iface_name: "{{ ansible_default_ipv4.interface }}"
         _control_hosts: "{{ groups[rke_control | default('rke_control')] }}"
@@ -44,7 +42,7 @@
 
     - name: Stat cluster state file
       ansible.builtin.stat:
-        path: "{{ rke_install_root }}/cluster.rkestate"
+        path: "{{ rke_state_file }}"
       register: check_rkestate
 
     - name: Group deployed hosts
@@ -54,27 +52,25 @@
 
 - name: Deploy RKE cluster
   hosts: "{{ _targets | first }}"
+  vars_files:
+    - main.yml
   vars:
     _installed: "{{ groups['_rke_installed'] | default([]) }}"
     _uninstalled: "{{ groups['_rke_uninstalled'] | default([]) }}"
     _targets: "{{ (_installed | length > 0) | ternary(_installed, _uninstalled) }}"
-    _kubeconfig: "{{ rke_install_root }}/kube_config_cluster.yml"
   tasks:
-    - name: Include collection variables
-      ansible.builtin.include_vars:
-        file: main.yml
-
     - name: Deploy/Update RKE cluster
       ansible.builtin.command:
         cmd: "{{ rke_bin_rke }} up"
         chdir: "{{ rke_install_root }}"
-      retries: 2
+      retries: "{{ _rke_retry_num }}"
+      delay: "{{ _rke_retry_delay }}"
       register: rke_deploy_result
       until: rke_deploy_result.rc == 0
 
     - name: Slurp kube config file
       ansible.builtin.slurp:
-        src: "{{ _kubeconfig }}"
+        src: "{{ _rke_install_config }}"
       register: _kubeconfig_slurp
 
     - name: Slurp cluster state file
@@ -84,7 +80,8 @@
 
     - name: Set cluster facts
       ansible.builtin.set_fact:
-        _rke_kubeconfig: "{{ _kubeconfig_slurp['content'] | b64decode }}"
+        _rke_kubeconfig_content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
+        _rke_kubeconfig_path: "~{{ ansible_user_id }}/.kube/config"
         _rke_clusterstate: "{{ _clusterstate_slurp['content'] | b64decode }}"
       delegate_to: localhost
       delegate_facts: true
@@ -92,25 +89,43 @@
 
 - name: Distribute cluster files to control nodes
   hosts: "{{ rke_control | default('rke_control') }}"
-  vars:
-    _kubeconfig_target: "~/.kube/config"
+  vars_files:
+    - main.yml
   tasks:
-    - name: Include collection variables
-      ansible.builtin.include_vars:
-        file: main.yml
-
-    - name: Create remote kube_config directory
+    - name: Create remote kubeconfig directory
       ansible.builtin.file:
-        path: "{{ _kubeconfig_target | dirname }}"
+        path: "{{ hostvars['localhost']['_rke_kubeconfig_path'] | dirname }}"
         state: directory
         mode: 0750
 
-    - name: Distribute kube config to all nodes
+    - name: Stat install kubeconfig
+      ansible.builtin.stat:
+        path: "{{ rke_state_file }}"
+      register: _installconfig_stat
+
+    - name: Distribute install kubeconfig to all nodes
       ansible.builtin.copy:
-        dest: "{{ _kubeconfig_target }}"
-        content: "{{ hostvars['localhost']['_rke_kubeconfig'] }}"
+        dest: "{{ _rke_install_config }}"
+        content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
+        mode: 0600
+      when: not _installconfig_stat.stat.exists
+
+    - name: Distribute user kubeconfig to all nodes
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['_rke_kubeconfig_path'] }}"
+        content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
+        mode: 0600
 
     - name: Distribute cluster state to all nodes
       ansible.builtin.copy:
         dest: "{{ rke_state_file }}"
         content: "{{ hostvars['localhost']['_rke_clusterstate'] }}"
+        mode: 0600
+
+    - name: Wait for cluster startup
+      ansible.builtin.command:
+        cmd: kubectl get nodes
+      register: _kubectl_query
+      retries: "{{ _rke_retry_num }}"
+      delay: "{{ _rke_retry_delay }}"
+      until: _kubectl_query is succeeded

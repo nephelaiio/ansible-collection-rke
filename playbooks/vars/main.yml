@@ -10,6 +10,9 @@ _rke_api_url: "{{ rke_api_url | default(rke_defaults_url_api) }}"
 _rke_release_rke: "{{ rke_release_rke | default(rke_defaults_release_rke) }}"
 _rke_release_k8s: "{{ rke_release_k8s | default(rke_defaults_release_k8s) }}"
 _rke_release_docker: "{{ rke_release_docker | default(rke_defaults_release_docker) }}"
+_rke_install_config: "{{ rke_install_root }}/kube_config_cluster.yml"
+_rke_retry_num: "{{ rke_retry_num | default(10) }}"
+_rke_retry_delay: "{{ rke_retry_delay | default(30) }}"
 
 # Hardcoded values
 rke_install_user: "{{ ansible_user_id }}"
@@ -21,3 +24,4 @@ rke_ssh_key: ~/.ssh/id_rsa
 rke_docker_packages:
   - docker-ce
   - docker-ce-cli
+rke_k8s_helm_bin: /usr/local/bin/helm

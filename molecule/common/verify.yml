@@ -1,6 +1,11 @@
 ---
 - name: Verify tool installation
   hosts: rke_control
+  any_errors_fatal: true
+  vars:
+    _rke_kubeconfig_path: "~{{ ansible_user_id }}/.kube/config"
+  vars_files:
+    - ../../playbooks/vars/main.yml
   tasks:
     - name: Check kubectl deployment
       ansible.builtin.command: kubectl --help
@@ -11,9 +16,32 @@
     - name: Check RKE binary
       ansible.builtin.command: rke --help
 
+    - name: Stat kubeconfig file
+      ansible.builtin.stat:
+        path: "{{ _rke_kubeconfig_path }}"
+      register: _kubeconfig_stat
+
+    - name: Check kubeconfig file
+      ansible.builtin.assert:
+        fail_msg: "Unable to locate kubeconfig file at path {{ _rke_kubeconfig_path }}"
+        that:
+          - _kubeconfig_stat.stat.exists
+
+    - name: Stat cluster state file
+      ansible.builtin.stat:
+        path: "{{ rke_state_file }}"
+      register: _clusterstate_stat
+
+    - name: Check cluster state file
+      ansible.builtin.assert:
+        fail_msg: "Unable to locate kubeconfig file at path {{ rke_state_file }}"
+        that:
+          - _clusterstate_stat.stat.exists
+
 
 - name: Verify Docker install
   hosts: rke
+  any_errors_fatal: true
   tasks:
     - name: Gather service facts
       ansible.builtin.service_facts:
@@ -28,6 +56,7 @@
 
 - name: Verify RKE install
   hosts: rke_control
+  any_errors_fatal: true
   tasks:
     - name: Install JQ
       ansible.builtin.package:
@@ -40,11 +69,22 @@
         executable: /bin/bash
       register: _kubectl_nodes
 
-    - name: Check cluster nodes
-      ansible.builtin.assert:
-        that:
-          - _kubectl_nodes.stdout_lines | difference(groups['rke']) | length == 0
-          - groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0
+    - name: Verify cluster nodes
+      block:
+        - name: Check cluster node status
+          ansible.builtin.assert:
+            that:
+              - groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0
+      rescue:
+        - name: Debug node registrations
+          ansible.builtin.debug:
+            msg: "Found nodes [{{ ', '.join(_kubectl_nodes.stdout_lines) }}] registered to the cluster"
+
+        - name: Debug unregistered nodes
+          ansible.builtin.debug:
+            msg: "Nodes [{{ ', '.join(_absent) }}] are not registered to the cluster"
+          vars:
+            _absent: "{{ groups['rke'] | difference(_kubectl_nodes.stdout_lines) }}"
 
     - name: Query cluster status
       ansible.builtin.shell:

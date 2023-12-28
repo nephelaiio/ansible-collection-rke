@@ -52,10 +52,11 @@
       vars:
         _network: "{{ _libvirt_network }}"
         _address: "{{ _libvirt_address }}"
+        _dhcp: "{{ _libvirt_dhcp }}"
         _net_address: "{{ _address | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') }}"
         _net_mask: "{{ _address | ansible.utils.ipaddr('netmask') }}"
-        _net_dhcp_start: "{{ _address | ansible.utils.ipaddr('2') | ansible.utils.ipaddr('address') }}"
-        _net_dhcp_end: "{{ _address | ansible.utils.ipaddr('-2') | ansible.utils.ipaddr('address') }}"
+        _net_dhcp_start: "{{ _dhcp | ansible.utils.ipaddr('2') | ansible.utils.ipaddr('address') }}"
+        _net_dhcp_end: "{{ _dhcp | ansible.utils.ipaddr('-2') | ansible.utils.ipaddr('address') }}"
       when: _libvirt_network != "default"
 
     - name: Start libvirt network
@@ -195,7 +196,6 @@
                   ansible.builtin.file:
                     dest: "{{ libvirt_tmpdir.path }}"
                     state: absent
-                  when: false
 
         - name: Start KVM guest
           community.libvirt.virt:
@@ -213,7 +213,6 @@
         path: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/id_rsa"
       run_once: true
       register: _pubkey
-      become: false
 
     - name: Retrieve platform ip information
       become: true
@@ -260,3 +259,13 @@
         content: "{{ _instance_conf | ansible.builtin.to_nice_yaml(indent=2) }}"
         dest: "{{ molecule_instance_config }}"
         mode: 0640
+
+    - name: Configure host file entries
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: ".*{{ item.instance }}.*"
+        line: "{{ item.address }} {{ item.instance }}"
+      loop_control:
+        label: "{{ item.instance }}"
+      loop: "{{ _instance_conf }}"
+      become: true

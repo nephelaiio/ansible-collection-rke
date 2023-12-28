@@ -1,0 +1,67 @@
+---
+- name: Install K8s components
+  hosts: "{{ rke_control | default('rke_control') }}"
+  vars_files:
+    - main.yml
+  vars:
+    k8s_helm_bin: "{{ rke_k8s_helm_bin }}"
+    k8s_metallb_speaker_secret: "{{ rke_metallb_speaker_secret }}"
+    k8s_longhorn_deploy: "{{ rke_k8s_longhorn_deploy | default(false) }}"
+    k8s_nginx_deploy: "{{ rke_k8s_nginx_deploy | default(true) }}"
+    k8s_opensearch_deploy: "{{ rke_k8s_opensearch_deploy | default(true) }}"
+    k8s_mysql_deploy: "{{ rke_k8s_mysql_deploy | default(true) }}"
+    k8s_olm_deploy: false
+    k8s_strimzi_deploy: "{{ rke_k8s_strimzi_deploy | default(true) }}"
+    k8s_zalando_deploy: "{{ rke_k8s_zalando_deploy | default(true) }}"
+    k8s_argocd_deploy: "{{ rke_k8s_argocd_deploy | default(true) }}"
+    k8s_cluster_type: "{{ rke_k8s_cluster_type | default('local') }}"
+    k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
+    k8s_retry_delay: "{{ _rke_retry_num }}"
+    k8s_retry_num: "{{ _rke_retry_delay }}"
+  tasks:
+    - name: Slurp kube config file
+      ansible.builtin.slurp:
+        src: "{{ _rke_install_config }}"
+      register: _kubeconfig_slurp
+
+    - name: Deploy k8s components
+      run_once: true
+      delegate_to: localhost
+      block:
+        - name: Create kubeconfig tempdir
+          ansible.builtin.tempfile:
+            state: directory
+            prefix: kubeconfig
+          register: kubeconfig_tmpdir
+
+        - name: Set kubeconfig facts
+          ansible.builtin.set_fact:
+            k8s_kubeconfig: "{{ kubeconfig_tmpdir.path }}/config"
+
+        - name: Create local kubeconfig
+          ansible.builtin.copy:
+            dest: "{{ k8s_kubeconfig }}"
+            content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
+            mode: 0640
+
+        - name: Deploy k8s with private iprange
+          ansible.builtin.include_role:
+            name: nephelaiio.rke.k8s
+          vars:
+            k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
+          when: rke_address_pool_public is not defined
+          run_once: true
+
+        - name: Deploy k8s with public+private ipranges
+          ansible.builtin.include_role:
+            name: nephelaiio.rke.k8s
+          vars:
+            k8s_address_pool_private_iprange: "{{ rke_address_pool_private }}"
+            k8s_address_pool_public_iprange: "{{ rke_address_pool_public }}"
+          when: rke_address_pool_public is defined
+
+      always:
+        - name: Destroy kubeconfig tempdir
+          ansible.builtin.file:
+            dest: "{{ kubeconfig_tmpdir.path }}"
+            state: absent

@@ -5,6 +5,8 @@ fileignoreconfig:
     ignore_detectors: [filecontent]
   - filename: molecule/install/molecule.yml
     ignore_detectors: [filecontent]
+  - filename: molecule/k8s/molecule.yml
+    ignore_detectors: [filecontent]
   - filename: molecule/common/create.yml
     ignore_detectors: [filecontent]
   - filename: molecule/common/templates/vm.j2.xml
@@ -16,4 +18,6 @@ fileignoreconfig:
   - filename: playbooks/rke.yml
     ignore_detectors: [filecontent]
   - filename: playbooks/ssh.yml
+    ignore_detectors: [filecontent]
+  - filename: playbooks/k8s.yml
     ignore_detectors: [filecontent]

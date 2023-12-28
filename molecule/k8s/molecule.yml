@@ -45,7 +45,7 @@ provisioner:
     converge: ../common/install.yml
     cleanup: ../common/cleanup.yml
     destroy: ../common/destroy.yml
-    side_effect: ../common/install.yml
+    side_effect: ../common/k8s.yml
     verify: ../common/verify.yml
   config_options:
     defaults:
@@ -55,14 +55,19 @@ provisioner:
     hosts:
       all:
         vars:
-          molecule_libvirt_address: '172.31.254.1/24'
+          molecule_libvirt_address: '172.31.255.1/24'
           molecule_libvirt_prefix: "{{ molecule_libvirt_address | ansible.utils.ipaddr('prefix') }}"
           molecule_rke_prefix: "{{ (molecule_libvirt_prefix | int) + 1 }}"
+          molecule_mlb_prefix: "{{ (molecule_rke_prefix | int) + 1 }}"
           molecule_dhcp: "{{ molecule_libvirt_address | ansible.utils.ipsubnet(molecule_rke_prefix, 0) }}"
           molecule_metallb: "{{ molecule_libvirt_address | ansible.utils.ipsubnet(molecule_rke_prefix, 1) }}"
           molecule_libvirt_dhcp: "{{ molecule_dhcp }}"
-          rke_cluster_name: rke.nephelaiio.io
           rke_ssh_key: "/tmp/id_rsa"
+          k8s_certmanager_issuer_name: local
+          # Required k8s params
+          rke_cluster_name: rke.nephelaiio.io
+          rke_address_pool_private: "{{ molecule_metallb | ansible.utils.ipsubnet(molecule_mlb_prefix, 1)}}"
+          rke_metallb_speaker_secret: secret
 verifier:
   name: ansible
 scenario:
@@ -79,7 +84,6 @@ scenario:
     - create
     - prepare
     - converge
-    - verify
     - side_effect
     - verify
     - destroy
