@@ -19,6 +19,8 @@ libvirt-python = "^9.9.0"
 lxml = "^4.9.3"
 xmltodict = "^0.13.0"
 github3-py = "^4.0.1"
+urllib3 = "<2.0"
+kubernetes = "^28.1.0"
 
 [build-system]
 requires = ["poetry-core"]
