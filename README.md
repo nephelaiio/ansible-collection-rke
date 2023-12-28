@@ -29,7 +29,6 @@ You can test the collection directly from sources using command `make test`
 ## ToDo
 
 * Add tests for the following platforms
-** Ubuntu Focal
 ** Rocky Linux 9
 ** Debian 12
 ** Debian 11
@@ -47,6 +46,8 @@ matrix:
 
 * Add upgrade tests
 * Add OS update playbook
+* Add API proxy
+* Add iBGP support for API access
 
 ## License
 
