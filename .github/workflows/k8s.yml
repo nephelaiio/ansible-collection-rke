@@ -1,5 +1,5 @@
 ---
-name: molecule
+name: k8s
 
 on:
   pull_request:
@@ -10,12 +10,11 @@ on:
 
 jobs:
   molecule:
-    name: molecule
+    name: k8s
     runs-on: libvirt
     strategy:
       matrix:
         scenario:
-          - name: install
           - name: k8s
         image:
           - url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
@@ -50,3 +49,4 @@ jobs:
           ANSIBLE_FORCE_COLOR: '1'
           MOLECULE_KVM_IMAGE: ${{ matrix.image.url }}
           MOLECULE_SCENARIO: ${{ matrix.scenario.name }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
