@@ -49,4 +49,4 @@ jobs:
           ANSIBLE_FORCE_COLOR: '1'
           MOLECULE_KVM_IMAGE: ${{ matrix.image.url }}
           MOLECULE_SCENARIO: ${{ matrix.scenario.name }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
