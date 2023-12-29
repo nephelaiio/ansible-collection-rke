@@ -30,7 +30,6 @@ You can test the collection directly from sources using command `make test`
 
 * Add tests for the following platforms
 ** Rocky Linux 9
-** Debian 12
 ** Debian 11
 
 ``` yaml
@@ -38,7 +37,6 @@ matrix:
   scenario:
     - name: install
   image:
-    - url: https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
     - url: https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2
     - url: https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2
     - url: https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2
