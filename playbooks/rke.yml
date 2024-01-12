@@ -4,6 +4,11 @@
   vars_files:
     - main.yml
   tasks:
+    - name: Debug rke install target
+      ansible.builtin.debug:
+        msg: |
+          rke={{ _rke_release_rke }}, k8s={{ _rke_release_k8s }}, docker={{ _rke_release_docker }}
+
     - name: Set install facts
       ansible.builtin.set_fact:
         _install_root: "{{ rke_install_root }}"

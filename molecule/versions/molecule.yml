@@ -55,7 +55,7 @@ provisioner:
     hosts:
       all:
         vars:
-          molecule_libvirt_address: '172.31.255.1/24'
+          molecule_libvirt_address: '172.31.253.1/24'
           molecule_libvirt_prefix: "{{ molecule_libvirt_address | ansible.utils.ipaddr('prefix') }}"
           molecule_rke_prefix: "{{ (molecule_libvirt_prefix | int) + 1 }}"
           molecule_mlb_prefix: "{{ (molecule_rke_prefix | int) + 1 }}"
@@ -68,6 +68,9 @@ provisioner:
           rke_cluster_name: rke.nephelaiio.io
           rke_address_pool_private: "{{ molecule_metallb | ansible.utils.ipsubnet(molecule_mlb_prefix, 1)}}"
           rke_metallb_speaker_secret: secret
+          rke_defaults_release_rke: "{{ lookup('ansible.builtin.env', 'RKE_RELEASE_RKE') }}"
+          rke_defaults_release_k8s: "{{ lookup('ansible.builtin.env', 'RKE_RELEASE_K8S') }}"
+          rke_defaults_release_docker: "{{ lookup('ansible.builtin.env', 'RKE_RELEASE_DOCKER') }}"
 verifier:
   name: ansible
 scenario:
