@@ -1,6 +1,6 @@
 ---
 - name: Configure SSH access
-  hosts: "{{ rke_control | default('rke_control') }}:{{ rke_worker | default('rke_worker') }}"
+  hosts: "{{ rke_control_group }}:{{ rke_worker_group }}"
   vars_files:
     - main.yml
   tasks:

@@ -31,7 +31,6 @@ You can test the collection directly from sources using command `make test`
 ## ToDo
 
 * Add upgrade tests
-* Add OS update playbook
 * Add API reverse proxy
 * Add iBGP support for API access
 

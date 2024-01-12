@@ -1,8 +1,10 @@
 ---
 - name: Deploy Consul
-  hosts: "{{ rke_control | default('rke_control') }}"
+  hosts: "{{ rke_control_group }}"
   become: true
   any_errors_fatal: true
+  vars_files:
+    - main.yml
   tasks:
     - name: Query Consul releases
       community.general.github_release:
@@ -19,7 +21,7 @@
         consul_node_role: "server"
         consul_bootstrap_expect: true
         consul_bootstrap_expect_value: "{{ ansible_play_hosts_all | length }}"
-        consul_group_name: "{{ rke_control | default('rke_control') }}"
+        consul_group_name: "{{ rke_control_group }}"
         consul_datacenter: "{{ rke_cluster_name | regex_replace('[.]', '_') }}"
         consul_encrypt_enable: false
         consul_install_dependencies: false

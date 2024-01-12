@@ -1,6 +1,6 @@
 ---
 - name: Install Docker
-  hosts: "{{ rke | default('rke') }}"
+  hosts: "{{ rke_control_group }}:{{ rke_worker_group }}"
   vars_files:
     - main.yml
   tasks:

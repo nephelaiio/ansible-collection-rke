@@ -1,6 +1,6 @@
 ---
 - name: Install K8s components
-  hosts: "{{ rke_control | default('rke_control') }}"
+  hosts: "{{ rke_control_group }}"
   vars_files:
     - main.yml
   vars:

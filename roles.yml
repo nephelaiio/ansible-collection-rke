@@ -15,3 +15,10 @@ roles:
   - name: consul
     src: https://github.com/ansible-community/ansible-consul.git
     version: master
+  - name: pip
+    src: https://github.com/nephelaiio/ansible-role-pip.git
+    version: 6.0.1
+    scm: git
+  - name: update
+    src: https://github.com/robertdebock/ansible-role-update.git
+    version: 3.1.7

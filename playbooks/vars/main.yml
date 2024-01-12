@@ -25,3 +25,7 @@ rke_docker_packages:
   - docker-ce
   - docker-ce-cli
 rke_k8s_helm_bin: /usr/local/bin/helm
+rke_control_group: "{{ rke_control | default('rke_control')  }}"
+rke_control_hosts: "{{ groups[rke_control_group] }}"
+rke_worker_group: "{{ rke_worker | default('rke_worker')  }}"
+rke_worker_hosts: "{{ groups[rke_worker_group] }}"

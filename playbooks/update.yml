@@ -1,0 +1,168 @@
+---
+- name: Query cluster control node status
+  hosts: "{{ rke_control_group }}"
+  vars_files:
+    - main.yml
+  tasks:
+    - name: Register healthy master nodes
+      tags: always
+      block:
+        - name: Query cluster master nodes
+          kubernetes.core.k8s_info:
+            kind: Node
+            label_selectors:
+              - node-role.kubernetes.io/controlplane=true
+          register: k8s_nodes_info
+
+        - name: Create healthy cluster master group
+          ansible.builtin.add_host:
+            hostname: "{{ item }}"
+            groups:
+              - rke_play_master_hosts
+          vars:
+            _rke_node: "{{ k8s_nodes_info.resources | selectattr('metadata.name', 'equalto', item) | list }}"
+            _rke_node_conditions: "{{ _rke_node | map(attribute='status.conditions') | flatten }}"
+            _rke_node_ready: "{{ _rke_node_conditions | selectattr('type', 'equalto', 'Ready') }}"
+            _rke_node_healthy: "{{ _rke_node_ready | selectattr('status', 'equalto', 'True') | length > 0 }}"
+            _rke_master_healthy: "{{ 'true' if _rke_node_healthy else 'false' }}"
+          loop: "{{ ansible_play_hosts }}"
+          when: _rke_master_healthy | bool
+
+
+- name: Update OS on cluster members workers
+  hosts: "{{ rke_worker_group }}:{{ rke_control_group }}"
+  serial: 1
+  vars_files:
+    - main.yml
+  vars:
+    _rke_play_master: "{{ groups['rke_play_master_hosts'] | last }}"
+  tasks:
+    - name: Cordon worker node
+      delegate_to: "{{ _rke_play_master }}"
+      block:
+        - name: Wait for pods to be in a running state
+          kubernetes.core.k8s_info:
+            kind: Pod
+          vars:
+            _k8s_pod_resources: "{{ k8s_pod_info.resources | list }}"
+            _k8s_pod_status: "{{ _k8s_pod_resources | map(attribute='status') }}"
+            _k8s_pod_running: "{{ _k8s_pod_status | selectattr('phase', 'defined') | selectattr('phase', 'equalto', 'Running') }}"
+            _k8s_pod_conditions: "{{ _k8s_pod_running | map(attribute='conditions') | flatten }}"
+            _k8s_pod_containers: "{{ _k8s_pod_conditions | selectattr('type', 'equalto', 'ContainersReady') }}"
+            _k8s_pod_falsestatus: "{{ _k8s_pod_containers | selectattr('status', 'equalto', 'False') }}"
+            _k8s_pod_reasons: "{{ _k8s_pod_falsestatus | selectattr('reason', 'defined') }}"
+            _k8s_pod_filter: "{{ _k8s_pod_reasons | selectattr('reason', 'equalto', 'ContainersNotReady') }}"
+          register: k8s_pod_info
+          retries: 30
+          delay: 10
+          until: _k8s_pod_filter | length == 0
+
+        - name: Drain cluster node
+          block:
+            - name: Attempt safe node drain
+              kubernetes.core.k8s_drain:
+                name: "{{ ansible_fqdn }}"
+                state: drain
+                delete_options:
+                  delete_emptydir_data: true
+                  ignore_daemonsets: true
+                  force: true
+                  wait_sleep: 10
+                  wait_timeout: 300
+
+          rescue:
+            - name: Force node drain
+              ansible.builtin.shell: |
+                kubectl drain {{ ansible_fqdn }} --delete-emptydir-data=true --force=true --ignore-daemonsets=true --timeout=300s
+
+        - name: Query node status
+          kubernetes.core.k8s_info:
+            kind: Node
+          register: k8s_node_info
+
+        - name: Verify node cordon status
+          ansible.builtin.fail:
+            msg: "cluster node is not cordoned"
+          vars:
+            _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
+            _k8s_node_spec: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) | map(attribute='spec') | list }}"
+            _k8s_node_scheduling_status: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') | selectattr('unschedulable') | list }}"
+          when: _k8s_node_scheduling_status | length == 0
+
+    - name: Upgrade cluster nodes
+      become: true
+      block:
+        - name: Upgrade node
+          ansible.builtin.include_role:
+            name: nephelaiio.rke.update
+          vars:
+            update_reboot: false
+
+        - name: Flush handlers
+          ansible.builtin.meta: flush_handlers
+
+        - name: Reboot node
+          ansible.builtin.reboot:
+
+    - name: Uncordon worker node
+      delegate_to: "{{ _rke_play_master }}"
+      block:
+        - name: Wait for cluster node to be ready
+          kubernetes.core.k8s_info:
+            kind: Node
+          vars:
+            _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
+            _k8s_node_status: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) | map(attribute='status') }}"
+            _k8s_node_conditions: "{{ _k8s_node_status | list | map(attribute='conditions') | flatten }}"
+          register: k8s_node_info
+          retries: 20
+          delay: 5
+          until:
+            - _k8s_node_status | length > 0
+            - _k8s_node_conditions | selectattr('type', 'equalto', 'Ready') | length > 0
+
+        - name: Uncordon node
+          kubernetes.core.k8s_drain:
+            name: "{{ ansible_fqdn }}"
+            state: uncordon
+          register: rke_uncordon
+          delegate_to: "{{ _rke_play_master }}"
+
+        - name: Wait for node to be schedulable
+          kubernetes.core.k8s_info:
+            kind: Node
+          vars:
+            _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
+            _k8s_node_spec: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) | map(attribute='spec') | list }}"
+            _k8s_node_scheduling_status: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') | selectattr('unschedulable') | list }}"
+          register: k8s_node_info
+          delegate_to: "{{ _rke_play_master }}"
+          retries: 20
+          delay: 5
+          until:
+            - _k8s_node_spec | length > 0
+            - _k8s_node_scheduling_status | length == 0
+
+        - name: Wait for pods to be created
+          ansible.builtin.pause:
+            seconds: 60
+
+        - name: Wait for pods to be running
+          kubernetes.core.k8s_info:
+            kind: Pod
+          vars:
+            _k8s_pod_resources: "{{ k8s_pod_info.resources | list }}"
+            _k8s_node_resources: "{{ _k8s_pod_resources | selectattr('spec.nodeName', 'defined') }}"
+            _k8s_pod_node: "{{ _k8s_node_resources | selectattr('spec.nodeName', 'equalto', ansible_fqdn) | list }}"
+            _k8s_pod_status: "{{ _k8s_pod_node | map(attribute='status') | selectattr('phase', 'defined') }}"
+            _k8s_pod_running: "{{ _k8s_pod_status | selectattr('phase', 'equalto', 'Running') }}"
+            _k8s_pod_containers: "{{ _k8s_pod_running | map(attribute='conditions') | flatten }}"
+            _k8s_pod_ready: "{{ _k8s_pod_containers | selectattr('type', 'equalto', 'ContainersReady') }}"
+            _k8s_pod_failed: "{{ _k8s_pod_containers | selectattr('status', 'equalto', 'False') }}"
+            _k8s_pod_faled_reason: "{{ _k8s_pod_failed | selectattr('reason', 'defined') }}"
+            _k8s_pod_notready: "{{ _k8s_pod_failed | selectattr('reason', 'equalto', 'ContainersNotReady') }}"
+          register: k8s_pod_info
+          retries: 30
+          delay: 10
+          until: _k8s_pod_notready | length == 0
+          delegate_to: "{{ _rke_play_master }}"
