@@ -36,6 +36,7 @@
     - main.yml
   vars:
     _rke_play_master: "{{ groups['rke_play_master_hosts'] | last }}"
+    _rke_play_standby: "{{ groups['rke_play_master_hosts'] | first }}"
   tasks:
     - name: Cordon worker node
       delegate_to: "{{ _rke_play_master }}"
@@ -46,7 +47,8 @@
           vars:
             _k8s_pod_resources: "{{ k8s_pod_info.resources | list }}"
             _k8s_pod_status: "{{ _k8s_pod_resources | map(attribute='status') }}"
-            _k8s_pod_running: "{{ _k8s_pod_status | selectattr('phase', 'defined') | selectattr('phase', 'equalto', 'Running') }}"
+            _k8s_pod_phases: "{{ _k8s_pod_status | selectattr('phase', 'defined') }}"
+            _k8s_pod_running: "{{ _k8s_pod_phases | selectattr('phase', 'equalto', 'Running') }}"
             _k8s_pod_conditions: "{{ _k8s_pod_running | map(attribute='conditions') | flatten }}"
             _k8s_pod_containers: "{{ _k8s_pod_conditions | selectattr('type', 'equalto', 'ContainersReady') }}"
             _k8s_pod_falsestatus: "{{ _k8s_pod_containers | selectattr('status', 'equalto', 'False') }}"
@@ -85,9 +87,10 @@
             msg: "cluster node is not cordoned"
           vars:
             _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
-            _k8s_node_spec: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) | map(attribute='spec') | list }}"
-            _k8s_node_scheduling_status: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') | selectattr('unschedulable') | list }}"
-          when: _k8s_node_scheduling_status | length == 0
+            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) }}"
+            _k8s_node_spec: "{{ _k8s_node_filter | map(attribute='spec') | list }}"
+            _k8s_node_cordoned: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') }}"
+          when: _k8s_node_cordoned | length == 0
 
     - name: Upgrade cluster nodes
       become: true
@@ -105,14 +108,15 @@
           ansible.builtin.reboot:
 
     - name: Uncordon worker node
-      delegate_to: "{{ _rke_play_master }}"
+      delegate_to: "{{ _rke_play_master if _rke_play_master != inventory_hostname else _rke_play_standby }}"
       block:
         - name: Wait for cluster node to be ready
           kubernetes.core.k8s_info:
             kind: Node
           vars:
             _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
-            _k8s_node_status: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) | map(attribute='status') }}"
+            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) }}"
+            _k8s_node_status: "{{ _k8s_node_filter | map(attribute='status') }}"
             _k8s_node_conditions: "{{ _k8s_node_status | list | map(attribute='conditions') | flatten }}"
           register: k8s_node_info
           retries: 20
@@ -133,15 +137,16 @@
             kind: Node
           vars:
             _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
-            _k8s_node_spec: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) | map(attribute='spec') | list }}"
-            _k8s_node_scheduling_status: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') | selectattr('unschedulable') | list }}"
+            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) }}"
+            _k8s_node_spec: "{{ _k8s_node_filter | map(attribute='spec') | list }}"
+            _k8s_node_cordoned: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') }}"
           register: k8s_node_info
           delegate_to: "{{ _rke_play_master }}"
           retries: 20
           delay: 5
           until:
             - _k8s_node_spec | length > 0
-            - _k8s_node_scheduling_status | length == 0
+            - _k8s_node_cordoned | length == 0
 
         - name: Wait for pods to be created
           ansible.builtin.pause:
@@ -153,7 +158,8 @@
           vars:
             _k8s_pod_resources: "{{ k8s_pod_info.resources | list }}"
             _k8s_node_resources: "{{ _k8s_pod_resources | selectattr('spec.nodeName', 'defined') }}"
-            _k8s_pod_node: "{{ _k8s_node_resources | selectattr('spec.nodeName', 'equalto', ansible_fqdn) | list }}"
+            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('spec.nodeName', 'equalto', ansible_fqdn) }}"
+            _k8s_pod_node: "{{ _k8s_node_filter | list }}"
             _k8s_pod_status: "{{ _k8s_pod_node | map(attribute='status') | selectattr('phase', 'defined') }}"
             _k8s_pod_running: "{{ _k8s_pod_status | selectattr('phase', 'equalto', 'Running') }}"
             _k8s_pod_containers: "{{ _k8s_pod_running | map(attribute='conditions') | flatten }}"
