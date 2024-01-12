@@ -1,0 +1,80 @@
+---
+name: upgrade
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  upgrade:
+    name: upgrade
+    runs-on: libvirt
+    strategy:
+      matrix:
+        scenario:
+          - install
+        image:
+          - https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+          - https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2
+    steps:
+      - name: Check out the codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Switch to pull request target branch
+        run: git checkout ${GIHUB_BASE_REF}
+
+      - name: Debug target ref
+        run: git --no-pager log --decorate=short -n1 --pretty=oneline
+
+      - name: Set up python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Update ubuntu repositories
+        run: sudo apt-get update
+
+      - name: Install make
+        run: sudo apt-get install -y make
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Debug test environment
+        run: make debug
+
+      - name: Install role requirements
+        run: make requirements
+
+      - name: Converge with target branch
+        run: make create prepare converge verify
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+          MOLECULE_KVM_IMAGE: ${{ matrix.image }}
+          MOLECULE_SCENARIO: ${{ matrix.scenario }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Switch to pull request source branch
+        run: git checkout ${GIHUB_HEAD_REF}
+
+      - name: Debug base ref
+        run: git --no-pager log --decorate=short -n1 --pretty=oneline
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Install role requirements
+        run: make requirements
+
+      - name: Converge with source branch
+        run: make converge verify
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+          MOLECULE_KVM_IMAGE: ${{ matrix.image }}
+          MOLECULE_SCENARIO: ${{ matrix.scenario }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

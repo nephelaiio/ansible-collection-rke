@@ -28,12 +28,6 @@ Role is tested against the following distributions (docker images):
 
 You can test the collection directly from sources using command `make test`
 
-## ToDo
-
-* Add upgrade tests
-* Add API reverse proxy
-* Add iBGP support for API access
-
 ## License
 
 This project is licensed under the terms of the [MIT License](/LICENSE)

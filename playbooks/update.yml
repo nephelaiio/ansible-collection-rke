@@ -75,7 +75,11 @@
           rescue:
             - name: Force node drain
               ansible.builtin.shell: |
-                kubectl drain {{ ansible_fqdn }} --delete-emptydir-data=true --force=true --ignore-daemonsets=true --timeout=300s
+                kubectl drain {{ ansible_fqdn }} \
+                  --delete-emptydir-data=true \
+                  --force=true \
+                  --ignore-daemonsets=true \
+                  --timeout=300s
 
         - name: Query node status
           kubernetes.core.k8s_info:
