@@ -1,5 +1,5 @@
 ---
-name: k8s
+name: molecule
 
 on:
   pull_request:
@@ -10,14 +10,21 @@ on:
 
 jobs:
   molecule:
-    name: k8s
+    name: molecule
     runs-on: libvirt
     strategy:
       matrix:
         scenario:
-          - name: k8s
+          - install
+          - k8s
+          - update
         image:
-          - url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+          - https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+        include:
+          - scenario: install
+            image: https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
+          - scenario: install
+            image: https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
@@ -47,6 +54,6 @@ jobs:
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
-          MOLECULE_KVM_IMAGE: ${{ matrix.image.url }}
-          MOLECULE_SCENARIO: ${{ matrix.scenario.name }}
+          MOLECULE_KVM_IMAGE: ${{ matrix.image }}
+          MOLECULE_SCENARIO: ${{ matrix.scenario }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

@@ -7,6 +7,8 @@ fileignoreconfig:
     ignore_detectors: [filecontent]
   - filename: molecule/k8s/molecule.yml
     ignore_detectors: [filecontent]
+  - filename: molecule/update/molecule.yml
+    ignore_detectors: [filecontent]
   - filename: molecule/common/create.yml
     ignore_detectors: [filecontent]
   - filename: molecule/common/templates/vm.j2.xml

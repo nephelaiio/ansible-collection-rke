@@ -1,6 +1,24 @@
 ---
+- name: Prepare RKE cluster masters
+  hosts: "{{ rke_control_group }}"
+  vars_files:
+    - main.yml
+  tasks:
+    - name: Include pip role
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.pip
+        apply:
+          become: true
+
+    - name: Install required pips
+      ansible.builtin.pip:
+        name:
+          - kubernetes
+        extra_args: "--user"
+
+
 - name: Prepare RKE cluster members
-  hosts: "{{ rke_control | default('rke_control') }}:{{ rke_worker | default('rke_worker') }}"
+  hosts: "{{ rke_control_group }}:{{ rke_worker_group }}"
   become: true
   vars_files:
     - main.yml

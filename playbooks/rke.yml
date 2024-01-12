@@ -1,6 +1,6 @@
 ---
 - name: Install RKE binary
-  hosts: "{{ rke_control | default('rke_control') }}"
+  hosts: "{{ rke_control_group }}"
   vars_files:
     - main.yml
   tasks:
@@ -34,8 +34,8 @@
         mode: 0600
       vars:
         _iface_name: "{{ ansible_default_ipv4.interface }}"
-        _control_hosts: "{{ groups[rke_control | default('rke_control')] }}"
-        _worker_hosts: "{{ groups[rke_worker | default('rke_worker')] }}"
+        _control_hosts: "{{ rke_control_hosts }}"
+        _worker_hosts: "{{ rke_worker_hosts }}"
         _provider: "{{ rke_cloud_provider | default('onpremise') }}"
         _api_url: "{{ _rke_api_url | urlsplit('hostname') }}"
         _k8s_release: "{{ _rke_release_k8s }}"
@@ -88,7 +88,7 @@
 
 
 - name: Distribute cluster files to control nodes
-  hosts: "{{ rke_control | default('rke_control') }}"
+  hosts: "{{ rke_control_group }}"
   vars_files:
     - main.yml
   tasks:
