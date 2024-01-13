@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
 
       - name: Switch to pull request target branch
-        run: git checkout master
+        run: git checkout ${GITHUB_BASE_REF}
 
       - name: Debug target ref
         run: git --no-pager log --decorate=short -n1 --pretty=oneline
@@ -59,7 +59,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Switch to pull request source branch
-        run: git checkout ${GIHUB_HEAD_REF}
+        run: git checkout ${GITHUB_HEAD_REF}
 
       - name: Debug base ref
         run: git --no-pager log --decorate=short -n1 --pretty=oneline
