@@ -118,7 +118,8 @@
           kubernetes.core.k8s_info:
             kind: Node
           vars:
-            _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
+            _k8s_node_info: "{{ [] if not 'resources' in k8s_node_info else k8s_node_info.resources }}"
+            _k8s_node_resources: "{{ _k8s_node_info | list }}"
             _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) }}"
             _k8s_node_status: "{{ _k8s_node_filter | map(attribute='status') }}"
             _k8s_node_conditions: "{{ _k8s_node_status | list | map(attribute='conditions') | flatten }}"
