@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
 
       - name: Switch to pull request target branch
-        run: git checkout ${GIHUB_BASE_REF}
+        run: git checkout master
 
       - name: Debug target ref
         run: git --no-pager log --decorate=short -n1 --pretty=oneline
