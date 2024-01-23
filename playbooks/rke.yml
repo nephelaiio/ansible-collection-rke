@@ -8,6 +8,7 @@
       ansible.builtin.debug:
         msg: |
           rke={{ _rke_release_rke }}, k8s={{ _rke_release_k8s }}, docker={{ _rke_release_docker }}
+      run_once: true
 
     - name: Set install facts
       ansible.builtin.set_fact:

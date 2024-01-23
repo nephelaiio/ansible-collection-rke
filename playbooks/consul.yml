@@ -1,8 +1,6 @@
 ---
-- name: Deploy Consul
-  hosts: "{{ rke_control_group }}"
-  become: true
-  any_errors_fatal: true
+- name: Query RKE component versions
+  hosts: localhost
   vars_files:
     - main.yml
   tasks:
@@ -13,11 +11,26 @@
         action: latest_release
         token: "{{ lookup('ansible.builtin.env', 'GITHUB_TOKEN') | default(omit) }}"
       register: _consul_release_query
-      delegate_to: localhost
 
-    - name: Set Consul facts
+    - name: Set target Consul release
       ansible.builtin.set_fact:
         consul_version: "{{ _version | regex_replace('^v', '') }}"
+      vars:
+        _version: "{{ rke_consul_version | default(_consul_release_query.tag) }}"
+
+
+- name: Deploy Consul
+  hosts: "{{ rke_control_group }}"
+  become: true
+  any_errors_fatal: true
+  vars_files:
+    - main.yml
+  tasks:
+    - name: Deploy Consul
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.consul
+      vars:
+        consul_version: "{{ hostvars['localhost']['consul_version'] }}"
         consul_node_role: "server"
         consul_bootstrap_expect: true
         consul_bootstrap_expect_value: "{{ ansible_play_hosts_all | length }}"
@@ -25,9 +38,3 @@
         consul_datacenter: "{{ rke_cluster_name | regex_replace('[.]', '_') }}"
         consul_encrypt_enable: false
         consul_install_dependencies: false
-      vars:
-        _version: "{{ rke_consul_version | default(_consul_release_query.tag) }}"
-
-    - name: Deploy Consul
-      ansible.builtin.include_role:
-        name: nephelaiio.rke.consul
