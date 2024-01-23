@@ -34,6 +34,7 @@
             _release: "{{ _rke_release_docker }}"
           loop: "{{ rke_docker_packages }}"
           register: _docker_versions
+          changed_when: false
 
         - name: Install Docker
           ansible.builtin.include_role:
@@ -43,6 +44,7 @@
           vars:
             _results: "{{ _docker_versions.results }}"
             docker_user: "{{ rke_install_user }}"
+            docker_user_manage: true
             docker_packages: "{{ _results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '=') }}"
 
     - name: Install Docker RedHat packages
@@ -66,4 +68,5 @@
           vars:
             _results: "{{ _docker_versions.results }}"
             docker_user: "{{ rke_install_user }}"
+            docker_user_manage: true
             docker_packages: "{{ _results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '-') }}"
