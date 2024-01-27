@@ -7,32 +7,32 @@ dependency:
 driver:
   name: default
 platforms:
-  - name: rke-install-control01
+  - name: rke-api-control01
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-control02
+  - name: rke-api-control02
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-control03
+  - name: rke-api-control03
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-worker01
+  - name: rke-api-worker01
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
       - rke
-  - name: rke-install-worker02
+  - name: rke-api-worker02
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
       - rke
-  - name: rke-install-worker03
+  - name: rke-api-worker03
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
