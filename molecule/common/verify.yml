@@ -2,8 +2,6 @@
 - name: Verify tool installation
   hosts: rke_control
   any_errors_fatal: true
-  vars:
-    _rke_kubeconfig_path: "~{{ ansible_user_id }}/.kube/config"
   vars_files:
     - ../../playbooks/vars/main.yml
   tasks:
@@ -18,12 +16,12 @@
 
     - name: Stat kubeconfig file
       ansible.builtin.stat:
-        path: "{{ _rke_kubeconfig_path }}"
+        path: "{{ _rke_config_user }}"
       register: _kubeconfig_stat
 
     - name: Check kubeconfig file
       ansible.builtin.assert:
-        fail_msg: "Unable to locate kubeconfig file at path {{ _rke_kubeconfig_path }}"
+        fail_msg: "Unable to locate kubeconfig file at path {{ _rke_config_user }}"
         that:
           - _kubeconfig_stat.stat.exists
 
