@@ -84,6 +84,9 @@
           vars:
             _absent: "{{ groups['rke'] | difference(_kubectl_nodes.stdout_lines) }}"
 
+        - name: Fail cluster node check
+          ansible.builtin.fail:
+
     - name: Query cluster status
       ansible.builtin.shell:
         cmd: "kubectl get cs -o json | jq '.items | map(.conditions | map(.type) | .[])'"

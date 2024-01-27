@@ -105,7 +105,7 @@
       vars:
         _kubeconfig_base: "{{ hostvars['localhost']['_rke_kubeconfig_content'] | ansible.builtin.from_yaml }}"
         _kubeconfig_server:
-          server: "{{ _rke_api_url if _rke_api_set else _kubeconfig_base.clusters[0].server }}"
+          server: "{{ _rke_api_url if _rke_api_set else _kubeconfig_base.clusters[0].cluster.server }}"
         _kubeconfig_cluster:
           clusters:
             - "{{ _kubeconfig_base['clusters'][0] | ansible.builtin.combine(_kubeconfig_server) }}"
