@@ -4,6 +4,20 @@
   vars_files:
     - main.yml
   tasks:
+    - name: Register cluster nembers
+      tags: always
+      block:
+        - name: Query cluster nodes
+          kubernetes.core.k8s_info:
+            kind: Node
+          register: k8s_nodes_info
+
+        - name: Register cluster nodes
+          ansible.builtin.set_fact:
+            _cluster_nodes: "{{ k8s_nodes_info.resources | map(attribute='metadata.name') }}"
+          delegate_to: localhost
+          delegate_facts: true
+
     - name: Register healthy master nodes
       tags: always
       block:
@@ -35,9 +49,14 @@
   vars_files:
     - main.yml
   vars:
+    _rke_cluster_nodes: "{{ hostvars['localhost']['_cluster_nodes'] }}"
     _rke_play_master: "{{ groups['rke_play_master_hosts'] | last }}"
     _rke_play_standby: "{{ groups['rke_play_master_hosts'] | first }}"
   tasks:
+    - name: Skip unregistered host
+      ansible.builtin.meta: end_host
+      when: inventory_hostname not in _rke_cluster_nodes
+
     - name: Cordon worker node
       delegate_to: "{{ _rke_play_master }}"
       block:

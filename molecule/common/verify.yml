@@ -71,8 +71,7 @@
       block:
         - name: Check cluster node status
           ansible.builtin.assert:
-            that:
-              - groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0
+            that: groups['rke'] | difference(_kubectl_nodes.stdout_lines) | length == 0
       rescue:
         - name: Debug node registrations
           ansible.builtin.debug:
