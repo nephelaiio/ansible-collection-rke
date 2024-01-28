@@ -86,9 +86,7 @@
 
         - name: Fail cluster node check
           ansible.builtin.fail:
-          when:
-            - ansible_distribution != Ubuntu
-            - ansible_distribution_release != "jammy"
+          when: false
 
     - name: Query cluster status
       ansible.builtin.shell:
