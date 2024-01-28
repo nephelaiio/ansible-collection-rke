@@ -4,7 +4,21 @@
   vars_files:
     - main.yml
   tasks:
-    - name: Register healthy master nodes
+    - name: Register cluster nembers
+      tags: always
+      block:
+        - name: Query cluster nodes
+          kubernetes.core.k8s_info:
+            kind: Node
+          register: k8s_nodes_info
+
+        - name: Register cluster nodes
+          ansible.builtin.set_fact:
+            _cluster_nodes: "{{ k8s_nodes_info.resources | map(attribute='metadata.name') }}"
+          delegate_to: localhost
+          delegate_facts: true
+
+    - name: Register healthy cluster master nodes
       tags: always
       block:
         - name: Query cluster master nodes
@@ -29,16 +43,21 @@
           when: _rke_master_healthy | bool
 
 
-- name: Update OS on cluster members workers
+- name: Update OS on cluster members
   hosts: "{{ rke_worker_group }}:{{ rke_control_group }}"
   serial: 1
   vars_files:
     - main.yml
   vars:
+    _rke_cluster_nodes: "{{ hostvars['localhost']['_cluster_nodes'] }}"
     _rke_play_master: "{{ groups['rke_play_master_hosts'] | last }}"
     _rke_play_standby: "{{ groups['rke_play_master_hosts'] | first }}"
   tasks:
-    - name: Cordon worker node
+    - name: Skip unregistered host
+      ansible.builtin.meta: end_host
+      when: inventory_hostname not in _rke_cluster_nodes
+
+    - name: Cordon cluster node
       delegate_to: "{{ _rke_play_master }}"
       block:
         - name: Wait for pods to be in a running state
@@ -61,7 +80,7 @@
 
         - name: Drain cluster node
           block:
-            - name: Attempt safe node drain
+            - name: Attempt safe cluster node drain
               kubernetes.core.k8s_drain:
                 name: "{{ ansible_fqdn }}"
                 state: drain
@@ -73,7 +92,7 @@
                   wait_timeout: 300
 
           rescue:
-            - name: Force node drain
+            - name: Force cluster node drain
               ansible.builtin.shell: |
                 kubectl drain {{ ansible_fqdn }} \
                   --delete-emptydir-data=true \
@@ -81,12 +100,12 @@
                   --ignore-daemonsets=true \
                   --timeout=300s
 
-        - name: Query node status
+        - name: Query cluster node status
           kubernetes.core.k8s_info:
             kind: Node
           register: k8s_node_info
 
-        - name: Verify node cordon status
+        - name: Verify cluster node cordon status
           ansible.builtin.fail:
             msg: "cluster node is not cordoned"
           vars:
@@ -99,7 +118,7 @@
     - name: Upgrade cluster nodes
       become: true
       block:
-        - name: Upgrade node
+        - name: Upgrade cluster node
           ansible.builtin.include_role:
             name: nephelaiio.rke.update
           vars:
@@ -111,7 +130,7 @@
         - name: Reboot node
           ansible.builtin.reboot:
 
-    - name: Uncordon worker node
+    - name: Uncordon cluster node
       delegate_to: "{{ _rke_play_master if _rke_play_master != inventory_hostname else _rke_play_standby }}"
       block:
         - name: Wait for cluster node to be ready
@@ -130,14 +149,14 @@
             - _k8s_node_status | length > 0
             - _k8s_node_conditions | selectattr('type', 'equalto', 'Ready') | length > 0
 
-        - name: Uncordon node
+        - name: Uncordon cluster node
           kubernetes.core.k8s_drain:
             name: "{{ ansible_fqdn }}"
             state: uncordon
           register: rke_uncordon
           delegate_to: "{{ _rke_play_master }}"
 
-        - name: Wait for node to be schedulable
+        - name: Wait for cluster node to be schedulable
           kubernetes.core.k8s_info:
             kind: Node
           vars:

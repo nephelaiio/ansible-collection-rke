@@ -13,3 +13,10 @@
       ansible.builtin.apt:
         name: python-is-python3
       when: ansible_os_family == 'Debian'
+
+    - name: Add host entry for rke api
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: ".*{{ rke_api_url | urlsplit('hostname') }}.*"
+        line: "127.0.0.1 {{ rke_api_url | urlsplit('hostname') }}"
+      when: rke_api_url is defined

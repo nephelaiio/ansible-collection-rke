@@ -11,6 +11,8 @@ fileignoreconfig:
     ignore_detectors: [filecontent]
   - filename: molecule/versions/molecule.yml
     ignore_detectors: [filecontent]
+  - filename: molecule/api/molecule.yml
+    ignore_detectors: [filecontent]
   - filename: molecule/common/create.yml
     ignore_detectors: [filecontent]
   - filename: molecule/common/templates/vm.j2.xml

@@ -77,7 +77,7 @@
 
     - name: Slurp kube config file
       ansible.builtin.slurp:
-        src: "{{ _rke_install_config }}"
+        src: "{{ _rke_config_install }}"
       register: _kubeconfig_slurp
 
     - name: Slurp cluster state file
@@ -88,8 +88,7 @@
     - name: Set cluster facts
       ansible.builtin.set_fact:
         _rke_kubeconfig_content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
-        _rke_kubeconfig_path: "~{{ ansible_user_id }}/.kube/config"
-        _rke_clusterstate: "{{ _clusterstate_slurp['content'] | b64decode }}"
+        _rke_clusterstate_content: "{{ _clusterstate_slurp['content'] | b64decode }}"
       delegate_to: localhost
       delegate_facts: true
 
@@ -99,34 +98,41 @@
   vars_files:
     - main.yml
   tasks:
-    - name: Create remote kubeconfig directory
-      ansible.builtin.file:
-        path: "{{ hostvars['localhost']['_rke_kubeconfig_path'] | dirname }}"
-        state: directory
-        mode: 0750
-
-    - name: Stat install kubeconfig
-      ansible.builtin.stat:
-        path: "{{ rke_state_file }}"
-      register: _installconfig_stat
+    - name: Initialize kubeconfig facts
+      ansible.builtin.set_fact:
+        _kubeconfig_content: "{{ _kubeconfig_base | ansible.builtin.combine(_kubeconfig_cluster) }}"
+        _clusterstate_content: "{{ hostvars['localhost']['_rke_clusterstate_content'] }}"
+      vars:
+        _kubeconfig_base: "{{ hostvars['localhost']['_rke_kubeconfig_content'] | ansible.builtin.from_yaml }}"
+        _kubeconfig_server:
+          server: "{{ _rke_api_url if _rke_api_set else _kubeconfig_base.clusters[0].cluster.server }}"
+        _kubeconfig_cluster:
+          clusters:
+            - "{{ _kubeconfig_base['clusters'][0] | ansible.builtin.combine(_kubeconfig_server) }}"
 
     - name: Distribute install kubeconfig to all nodes
       ansible.builtin.copy:
-        dest: "{{ _rke_install_config }}"
-        content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
+        dest: "{{ _rke_config_install }}"
+        content: "{{ _kubeconfig_content | ansible.builtin.to_nice_yaml(indent=2) }}"
+        backup: true
         mode: 0600
-      when: not _installconfig_stat.stat.exists
+
+    - name: Create kubeconfig user directory
+      ansible.builtin.file:
+        path: "{{ _rke_config_user | dirname }}"
+        state: directory
+        mode: 0750
 
     - name: Distribute user kubeconfig to all nodes
       ansible.builtin.copy:
-        dest: "{{ hostvars['localhost']['_rke_kubeconfig_path'] }}"
-        content: "{{ hostvars['localhost']['_rke_kubeconfig_content'] }}"
+        dest: "{{ _rke_config_user }}"
+        content: "{{ _kubeconfig_content }}"
         mode: 0600
 
     - name: Distribute cluster state to all nodes
       ansible.builtin.copy:
         dest: "{{ rke_state_file }}"
-        content: "{{ hostvars['localhost']['_rke_clusterstate'] }}"
+        content: "{{ _clusterstate_content }}"
         mode: 0600
 
     - name: Wait for cluster startup

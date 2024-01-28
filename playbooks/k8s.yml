@@ -21,7 +21,7 @@
   tasks:
     - name: Slurp kube config file
       ansible.builtin.slurp:
-        src: "{{ _rke_install_config }}"
+        src: "{{ _rke_config_install }}"
       register: _kubeconfig_slurp
 
     - name: Deploy k8s components

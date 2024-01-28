@@ -7,32 +7,32 @@ dependency:
 driver:
   name: default
 platforms:
-  - name: rke-install-control01
+  - name: rke-install-control-01
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-control02
+  - name: rke-install-control-02
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-control03
+  - name: rke-install-control-03
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-worker01
+  - name: rke-install-worker-01
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
       - rke
-  - name: rke-install-worker02
+  - name: rke-install-worker-02
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
       - rke
-  - name: rke-install-worker03
+  - name: rke-install-worker-03
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
@@ -89,5 +89,3 @@ scenario:
     - converge
     - side_effect
     - verify
-    - destroy
-    - cleanup

@@ -45,7 +45,6 @@ provisioner:
     converge: ../common/install.yml
     cleanup: ../common/cleanup.yml
     destroy: ../common/destroy.yml
-    side_effect: ../common/install.yml
     verify: ../common/verify.yml
   config_options:
     defaults:
@@ -82,5 +81,3 @@ scenario:
     - verify
     - side_effect
     - verify
-    - destroy
-    - cleanup
