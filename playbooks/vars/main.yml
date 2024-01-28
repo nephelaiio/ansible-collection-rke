@@ -13,7 +13,6 @@ _rke_release_k8s: "{{ rke_release_k8s | default(rke_defaults_release_k8s) }}"
 _rke_release_docker: "{{ rke_release_docker | default(rke_defaults_release_docker) }}"
 _rke_config_install: "{{ rke_install_root }}/kube_config_cluster.yml"
 _rke_config_user: "~{{ ansible_user_id }}/.kube/config"
-_rke_config_cluster: "{{ rke_install_root }}/config"
 _rke_retry_num: "{{ rke_retry_num | default(10) }}"
 _rke_retry_delay: "{{ rke_retry_delay | default(30) }}"
 
