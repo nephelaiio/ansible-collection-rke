@@ -41,7 +41,7 @@
         - name: Create local kubeconfig
           ansible.builtin.copy:
             dest: "{{ k8s_kubeconfig }}"
-            content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
+            content: "{{ _kubeconfig_slurp['content'] | b64decode | to_nice_yaml(indent=2) }}"
             mode: 0600
 
         - name: Deploy k8s with private iprange
