@@ -37,7 +37,6 @@ jobs:
           - install
           - k8s
           - update
-          - api
         image:
           - https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
         include:

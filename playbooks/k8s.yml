@@ -19,7 +19,7 @@
     k8s_retry_delay: "{{ _rke_retry_num }}"
     k8s_retry_num: "{{ _rke_retry_delay }}"
   tasks:
-    - name: Slurp kube config file
+    - name: Slurp kubeconfig file
       ansible.builtin.slurp:
         src: "{{ _rke_config_install }}"
       register: _kubeconfig_slurp

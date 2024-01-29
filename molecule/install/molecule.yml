@@ -63,6 +63,7 @@ provisioner:
           molecule_libvirt_dhcp: "{{ molecule_dhcp }}"
           rke_cluster_name: rke.nephelaiio.io
           rke_ssh_key: "/tmp/id_rsa"
+          rke_api_url: "https://api.{{ rke_cluster_name }}:6443"
 verifier:
   name: ansible
 scenario:

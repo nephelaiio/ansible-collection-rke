@@ -44,7 +44,7 @@
         _control_hosts: "{{ rke_control_hosts }}"
         _worker_hosts: "{{ rke_worker_hosts }}"
         _provider: "{{ rke_cloud_provider | default('onpremise') }}"
-        _api_url: "{{ _rke_api_url | urlsplit('hostname') }}"
+        _api_url: "{{ '' if (rke_api_url is not defined) else rke_api_url | urlsplit('hostname') }}"
         _k8s_release: "{{ _rke_release_k8s }}"
 
     - name: Stat cluster state file
@@ -75,7 +75,7 @@
       register: rke_deploy_result
       until: rke_deploy_result.rc == 0
 
-    - name: Slurp kube config file
+    - name: Slurp kube configfile
       ansible.builtin.slurp:
         src: "{{ _rke_config_install }}"
       register: _kubeconfig_slurp
@@ -100,21 +100,23 @@
   tasks:
     - name: Initialize kubeconfig facts
       ansible.builtin.set_fact:
-        _kubeconfig_content: "{{ _kubeconfig_base | ansible.builtin.combine(_kubeconfig_cluster) }}"
+        _kubeconfig_content: "{{ _base_config | ansible.builtin.combine(_new_cluster) }}"
         _clusterstate_content: "{{ hostvars['localhost']['_rke_clusterstate_content'] }}"
       vars:
-        _kubeconfig_base: "{{ hostvars['localhost']['_rke_kubeconfig_content'] | ansible.builtin.from_yaml }}"
-        _kubeconfig_server:
-          server: "{{ _rke_api_url if _rke_api_set else _kubeconfig_base.clusters[0].cluster.server }}"
-        _kubeconfig_cluster:
+        _base_config: "{{ hostvars['localhost']['_rke_kubeconfig_content'] | ansible.builtin.from_yaml }}"
+        _base_server: "{{ _base_config.clusters[0].cluster.server }}"
+        _new_server:
+          cluster:
+            server: "{{ _base_server if (rke_api_url is not defined) else rke_api_url }}"
+        _new_cluster:
           clusters:
-            - "{{ _kubeconfig_base['clusters'][0] | ansible.builtin.combine(_kubeconfig_server) }}"
+            - "{{ _base_config['clusters'][0] | ansible.builtin.combine(_new_server, recursive=true) }}"
 
     - name: Debug kubeconfig server configuration
       ansible.builtin.debug:
-        msg: "Overwriting kubeconfig with api server {{ _kubeconfig_server }}"
+        msg: "Distributing kubeconfig with api server {{ _kubeconfig_server }}"
       vars:
-        _kubeconfig_server: "{{ _kubecofnig_content.clusters[0].cluster.server | default('n/a') }}"
+        _kubeconfig_server: "{{ _kubeconfig_content.clusters[0].cluster.server }}"
 
     - name: Distribute install kubeconfig to all nodes
       ansible.builtin.copy:
