@@ -7,32 +7,32 @@ dependency:
 driver:
   name: default
 platforms:
-  - name: rke-install-control01
+  - name: rke-install-control-01
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-control02
+  - name: rke-install-control-02
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-control03
+  - name: rke-install-control-03
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-worker01
+  - name: rke-install-worker-01
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
       - rke
-  - name: rke-install-worker02
+  - name: rke-install-worker-02
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
       - rke
-  - name: rke-install-worker03
+  - name: rke-install-worker-03
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
@@ -43,6 +43,7 @@ provisioner:
     create: ../common/create.yml
     prepare: ../common/prepare.yml
     converge: ../common/install.yml
+    side_effect: ../common/update.yml
     cleanup: ../common/cleanup.yml
     destroy: ../common/destroy.yml
     verify: ../common/verify.yml
@@ -78,6 +79,4 @@ scenario:
     - create
     - prepare
     - converge
-    - verify
-    - side_effect
     - verify
