@@ -75,4 +75,14 @@ jobs:
           ANSIBLE_FORCE_COLOR: '1'
           MOLECULE_KVM_IMAGE: ${{ matrix.image }}
           MOLECULE_SCENARIO: ${{ matrix.scenario }}
+          MOLECULE_OUTPUT_DIR: /tmp/logs
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Upload install logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: install-logs
+          path: |
+            /tmp/logs/*
+          if-no-files-found: ignore
+        if: always()

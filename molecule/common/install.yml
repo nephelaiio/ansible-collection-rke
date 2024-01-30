@@ -1,11 +1,13 @@
 ---
-- name: Import install playbook
-  import_playbook: nephelaiio.rke.install
+#- name: Import install playbook
+#  import_playbook: nephelaiio.rke.install
 
 
 - name: Archive RKE install logs
   hosts: rke_control
   any_errors_fatal: true
+  vars:
+    _logfile: "{{ molecule_install_log | default('/tmp/install.log') }}"
   tasks:
     - name: Archive RKE install logs
       run_once: true
@@ -15,9 +17,23 @@
             src: /opt/rke/install.log
           register: _rke_installlog_slurp
 
-        - name: Create local copy of RKE install logs
-          ansible.builtin.copy:
-            dest: "{{ molecule_install_log | default('/tmp/install.log') }}"
-            content: "{{ _rke_installlog_slurp['content'] | b64decode }}"
-            mode: 0600
+        - name: Create RKE install archive
           delegate_to: localhost
+          block:
+            - name: Create RKE install log directory
+              ansible.builtin.file:
+                dest: "{{ _logfile | dirname }}"
+                state: directory
+                mode: 0755
+
+            - name: Create local copy of RKE install logs
+              ansible.builtin.copy:
+                dest: "{{ _logfile }}"
+                content: "{{ _rke_installlog_slurp['content'] | b64decode }}"
+                mode: 0644
+
+            - name: Create archive copy of RKE install logs
+              ansible.builtin.copy:
+                dest: "{{ _logfile }}.{{ ansible_date_time.iso8601_basic_short }}"
+                content: "{{ _rke_installlog_slurp['content'] | b64decode }}"
+                mode: 0644
