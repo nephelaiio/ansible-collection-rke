@@ -17,6 +17,7 @@ _rke_retry_delay: "{{ rke_retry_delay | default(30) }}"
 # Hardcoded values
 rke_install_user: "{{ ansible_user_id }}"
 rke_install_root: /opt/rke
+rke_install_log: "{{ rke_install_root }}/install.log"
 rke_state_file: "{{ rke_install_root }}/cluster.rkestate"
 rke_bin_rke: /usr/local/bin/rke
 rke_bin_helm: /usr/local/bin/helm
