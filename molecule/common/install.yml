@@ -1,6 +1,6 @@
 ---
-#- name: Import install playbook
-#  import_playbook: nephelaiio.rke.install
+- name: Import install playbook
+  import_playbook: nephelaiio.rke.install
 
 
 - name: Archive RKE install logs
