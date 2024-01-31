@@ -7,32 +7,32 @@ dependency:
 driver:
   name: default
 platforms:
-  - name: rke-install-control-01
+  - name: rke-${MOLECULE_SCENARIO_NAME}-control-01
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-control-02
+  - name: rke-${MOLECULE_SCENARIO_NAME}-control-02
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-control-03
+  - name: rke-${MOLECULE_SCENARIO_NAME}-control-03
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_control
       - rke
-  - name: rke-install-worker-01
+  - name: rke-${MOLECULE_SCENARIO_NAME}-worker-01
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
       - rke
-  - name: rke-install-worker-02
+  - name: rke-${MOLECULE_SCENARIO_NAME}-worker-02
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker
       - rke
-  - name: rke-install-worker-03
+  - name: rke-${MOLECULE_SCENARIO_NAME}-worker-03
     image: "${MOLECULE_KVM_IMAGE}"
     groups:
       - rke_worker

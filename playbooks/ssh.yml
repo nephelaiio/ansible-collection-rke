@@ -21,6 +21,6 @@
         user: "{{ rke_install_user }}"
         key: "{{ rke_publickey.public_key }}"
       loop_control:
-        label: "{{ rke_install_user }}@{{ ansible_fqdn }} -> {{ item }}"
+        label: "{{ rke_install_user }}@{{ inventory_hostname }} -> {{ item }}"
       loop: "{{ play_hosts }}"
       delegate_to: "{{ item }}"

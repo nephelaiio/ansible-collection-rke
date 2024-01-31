@@ -52,10 +52,11 @@
     _rke_cluster_nodes: "{{ hostvars['localhost']['_cluster_nodes'] }}"
     _rke_play_master: "{{ groups['rke_play_master_hosts'] | last }}"
     _rke_play_standby: "{{ groups['rke_play_master_hosts'] | first }}"
+    _rke_hostname: "{{ inventory_hostname }}"
   tasks:
     - name: Skip unregistered host
       ansible.builtin.meta: end_host
-      when: inventory_hostname not in _rke_cluster_nodes
+      when: _rke_hostname not in _rke_cluster_nodes
 
     - name: Cordon cluster node
       delegate_to: "{{ _rke_play_master }}"
@@ -82,7 +83,7 @@
           block:
             - name: Attempt safe cluster node drain
               kubernetes.core.k8s_drain:
-                name: "{{ ansible_fqdn }}"
+                name: "{{ _rke_hostname }}"
                 state: drain
                 delete_options:
                   delete_emptydir_data: true
@@ -94,7 +95,7 @@
           rescue:
             - name: Force cluster node drain
               ansible.builtin.shell: |
-                kubectl drain {{ ansible_fqdn }} \
+                kubectl drain {{ _rke_hostname }} \
                   --delete-emptydir-data=true \
                   --force=true \
                   --ignore-daemonsets=true \
@@ -109,8 +110,9 @@
           ansible.builtin.fail:
             msg: "cluster node is not cordoned"
           vars:
+            _hostname: "{{ _rke_hostname }}"
             _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
-            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) }}"
+            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', _hostname) }}"
             _k8s_node_spec: "{{ _k8s_node_filter | map(attribute='spec') | list }}"
             _k8s_node_cordoned: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') }}"
           when: _k8s_node_cordoned | length == 0
@@ -131,15 +133,16 @@
           ansible.builtin.reboot:
 
     - name: Uncordon cluster node
-      delegate_to: "{{ _rke_play_master if _rke_play_master != inventory_hostname else _rke_play_standby }}"
+      delegate_to: "{{ _rke_play_master if _rke_play_master != _rke_hostname else _rke_play_standby }}"
       block:
         - name: Wait for cluster node to be ready
           kubernetes.core.k8s_info:
             kind: Node
           vars:
+            _hostname: "{{ _rke_hostname }}"
             _k8s_node_info: "{{ [] if not 'resources' in k8s_node_info else k8s_node_info.resources }}"
             _k8s_node_resources: "{{ _k8s_node_info | list }}"
-            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) }}"
+            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', _hostname) }}"
             _k8s_node_status: "{{ _k8s_node_filter | map(attribute='status') }}"
             _k8s_node_conditions: "{{ _k8s_node_status | list | map(attribute='conditions') | flatten }}"
           register: k8s_node_info
@@ -151,7 +154,7 @@
 
         - name: Uncordon cluster node
           kubernetes.core.k8s_drain:
-            name: "{{ ansible_fqdn }}"
+            name: "{{ _rke_hostname }}"
             state: uncordon
           register: rke_uncordon
           delegate_to: "{{ _rke_play_master }}"
@@ -160,8 +163,9 @@
           kubernetes.core.k8s_info:
             kind: Node
           vars:
+            _hostname: "{{ _rke_hostname }}"
             _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
-            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', ansible_fqdn) }}"
+            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('metadata.name', 'equalto', _hostname) }}"
             _k8s_node_spec: "{{ _k8s_node_filter | map(attribute='spec') | list }}"
             _k8s_node_cordoned: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') }}"
           register: k8s_node_info
@@ -180,9 +184,10 @@
           kubernetes.core.k8s_info:
             kind: Pod
           vars:
+            _hostname: "{{ _rke_hostname }}"
             _k8s_pod_resources: "{{ k8s_pod_info.resources | list }}"
             _k8s_node_resources: "{{ _k8s_pod_resources | selectattr('spec.nodeName', 'defined') }}"
-            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('spec.nodeName', 'equalto', ansible_fqdn) }}"
+            _k8s_node_filter: "{{ _k8s_node_resources | selectattr('spec.nodeName', 'equalto', _hostname) }}"
             _k8s_pod_node: "{{ _k8s_node_filter | list }}"
             _k8s_pod_status: "{{ _k8s_pod_node | map(attribute='status') | selectattr('phase', 'defined') }}"
             _k8s_pod_running: "{{ _k8s_pod_status | selectattr('phase', 'equalto', 'Running') }}"
