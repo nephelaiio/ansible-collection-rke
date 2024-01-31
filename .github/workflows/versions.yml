@@ -34,7 +34,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - scenario: intall
+          - scenario: install
             image: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
             base:
               rke: "v1.4.11"
@@ -47,8 +47,6 @@ jobs:
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up python 3
         uses: actions/setup-python@v4
