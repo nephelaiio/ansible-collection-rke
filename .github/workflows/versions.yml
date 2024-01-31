@@ -34,7 +34,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - scenario: install
+          - scenario: intall
             image: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
             base:
               rke: "v1.4.11"
@@ -49,12 +49,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Switch to pull request target branch
-        run: git checkout ${GITHUB_BASE_REF}
-
-      - name: Debug target ref
-        run: git --no-pager log --decorate=short -n1 --pretty=oneline
 
       - name: Set up python 3
         uses: actions/setup-python@v4
@@ -76,7 +70,7 @@ jobs:
       - name: Install role requirements
         run: make requirements
 
-      - name: Converge with target branch
+      - name: Converge with base version
         run: make create prepare converge side-effect
         env:
           PY_COLORS: '1'
@@ -89,19 +83,7 @@ jobs:
           RKE_RELEASE_K8S: ${{ matrix.base.k8s }}
           RKE_RELEASE_DOCKER: ${{ matrix.base.docker }}
 
-      - name: Switch to pull request source branch
-        run: git checkout ${GITHUB_HEAD_REF}
-
-      - name: Debug base ref
-        run: git --no-pager log --decorate=short -n1 --pretty=oneline
-
-      - name: Install dependencies
-        run: make install
-
-      - name: Install role requirements
-        run: make requirements
-
-      - name: Converge with source branch
+      - name: Converge with target version
         run: make converge side-effect verify
         env:
           PY_COLORS: '1'
