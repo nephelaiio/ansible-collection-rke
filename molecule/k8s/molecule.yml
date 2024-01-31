@@ -63,7 +63,7 @@ provisioner:
           molecule_metallb: "{{ molecule_libvirt_address | ansible.utils.ipsubnet(molecule_rke_prefix, 1) }}"
           molecule_libvirt_dhcp: "{{ molecule_dhcp }}"
           molecule_install_dir: "{{ lookup('env', 'MOLECULE_OUTPUT_DIR', default='/tmp/logs') }}"
-          molecule_install_log: "{{ molecule_install_dir }}/${MOLECULE_SCENARIO_NAME}.log"
+          molecule_install_log: "{{ molecule_install_dir }}/${MOLECULE_SCENARIO_NAME}"
           rke_ssh_key: "/tmp/id_rsa"
           k8s_certmanager_issuer_name: local
           # Required k8s params

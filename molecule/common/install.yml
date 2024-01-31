@@ -5,35 +5,75 @@
 
 - name: Archive RKE install logs
   hosts: rke_control
-  any_errors_fatal: true
   vars:
-    _logfile: "{{ molecule_install_log | default('/tmp/install.log') }}"
+    _logfile: "{{ molecule_install_log | default('/tmp/install') }}"
   tasks:
     - name: Archive RKE install logs
       run_once: true
       block:
-        - name: Slurp RKE install logs
+        - name: Create install log directory
+          ansible.builtin.file:
+            dest: "{{ _logfile | dirname }}"
+            state: directory
+            mode: 0755
+          delegate_to: localhost
+
+        - name: Slurp cluster configuration
+          ansible.builtin.slurp:
+            src: /opt/rke/cluster.yml
+          register: _rke_clusterconfig_slurp
+
+        - name: Create cluster configuration archive
+          ansible.builtin.copy:
+            dest: "{{ _logfile }}.cluster.yml.{{ ansible_date_time.iso8601_basic_short }}"
+            content: "{{ _rke_clusterconfig_slurp['content'] | b64decode }}"
+            mode: 0644
+          delegate_to: localhost
+
+        - name: Slurp install log
           ansible.builtin.slurp:
             src: /opt/rke/install.log
           register: _rke_installlog_slurp
 
-        - name: Create RKE install archive
+        - name: Create install log archive
+          ansible.builtin.copy:
+            dest: "{{ _logfile }}.install.log.{{ ansible_date_time.iso8601_basic_short }}"
+            content: "{{ _rke_installlog_slurp['content'] | b64decode }}"
+            mode: 0644
           delegate_to: localhost
-          block:
-            - name: Create RKE install log directory
-              ansible.builtin.file:
-                dest: "{{ _logfile | dirname }}"
-                state: directory
-                mode: 0755
 
-            - name: Create local copy of RKE install logs
-              ansible.builtin.copy:
-                dest: "{{ _logfile }}"
-                content: "{{ _rke_installlog_slurp['content'] | b64decode }}"
-                mode: 0644
+        - name: Slurp cluster state
+          ansible.builtin.slurp:
+            src: /opt/rke/cluster.rkestate
+          register: _rke_clusterstate_slurp
 
-            - name: Create archive copy of RKE install logs
-              ansible.builtin.copy:
-                dest: "{{ _logfile }}.{{ ansible_date_time.iso8601_basic_short }}"
-                content: "{{ _rke_installlog_slurp['content'] | b64decode }}"
-                mode: 0644
+        - name: Create cluster state archive
+          ansible.builtin.copy:
+            dest: "{{ _logfile }}.cluster.rkestate.{{ ansible_date_time.iso8601_basic_short }}"
+            content: "{{ _rke_clusterstate_slurp['content'] | b64decode }}"
+            mode: 0644
+          delegate_to: localhost
+
+        - name: Slurp install kubeconfig
+          ansible.builtin.slurp:
+            src: /opt/rke/kube_config_cluster.yml
+          register: _rke_kubeconfig_slurp
+
+        - name: Create install kubeconfig archive
+          ansible.builtin.copy:
+            dest: "{{ _logfile }}.kubeconfig.install.{{ ansible_date_time.iso8601_basic_short }}"
+            content: "{{ _rke_kubeconfig_slurp['content'] | b64decode }}"
+            mode: 0644
+          delegate_to: localhost
+
+        - name: Slurp user kubeconfig
+          ansible.builtin.slurp:
+            src: "~{{ ansible_user_id }}/.kube/config"
+          register: _rke_kubeconfig_slurp
+
+        - name: Create install kubeconfig archive
+          ansible.builtin.copy:
+            dest: "{{ _logfile }}.kubeconfig.user.{{ ansible_date_time.iso8601_basic_short }}"
+            content: "{{ _rke_kubeconfig_slurp['content'] | b64decode }}"
+            mode: 0644
+          delegate_to: localhost
