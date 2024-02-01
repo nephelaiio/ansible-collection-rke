@@ -33,22 +33,20 @@ jobs:
     needs: version
     strategy:
       matrix:
-        scenario:
-          - install
-        image:
-          - https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
-          - https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2
+        include:
+          - scenario: install
+            image: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+            base:
+              rke: "v1.4.11"
+              k8s: "v1.24.17-rancher1-1"
+              docker: "20.10.24"
+            target:
+              rke: "v1.4.12"
+              k8s: "v1.24.17-rancher1-1"
+              docker: "20.10.24"
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Switch to pull request target branch
-        run: git checkout ${GITHUB_BASE_REF}
-
-      - name: Debug target ref
-        run: git --no-pager log --decorate=short -n1 --pretty=oneline
 
       - name: Set up python 3
         uses: actions/setup-python@v4
@@ -70,32 +68,45 @@ jobs:
       - name: Install role requirements
         run: make requirements
 
-      - name: Converge with target branch
-        run: make create prepare converge verify
+      - name: Converge with base version
+        run: make create prepare converge side-effect
         env:
-          PY_COLORS: '1'
-          ANSIBLE_FORCE_COLOR: '1'
           MOLECULE_KVM_IMAGE: ${{ matrix.image }}
           MOLECULE_SCENARIO: ${{ matrix.scenario }}
+          MOLECULE_OUTPUT_DIR: /tmp/logs
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          RKE_RELEASE_RKE: ${{ matrix.base.rke }}
+          RKE_RELEASE_K8S: ${{ matrix.base.k8s }}
+          RKE_RELEASE_DOCKER: ${{ matrix.base.docker }}
 
-      - name: Switch to pull request source branch
-        run: git checkout ${GITHUB_HEAD_REF}
-
-      - name: Debug base ref
-        run: git --no-pager log --decorate=short -n1 --pretty=oneline
-
-      - name: Install dependencies
-        run: make install
-
-      - name: Install role requirements
-        run: make requirements
-
-      - name: Converge with source branch
-        run: make converge verify
+      - name: Converge with target version
+        run: make converge side-effect verify
         env:
-          PY_COLORS: '1'
-          ANSIBLE_FORCE_COLOR: '1'
           MOLECULE_KVM_IMAGE: ${{ matrix.image }}
           MOLECULE_SCENARIO: ${{ matrix.scenario }}
+          MOLECULE_OUTPUT_DIR: /tmp/logs
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          RKE_RELEASE_RKE: ${{ matrix.target.rke }}
+          RKE_RELEASE_K8S: ${{ matrix.target.k8s }}
+          RKE_RELEASE_DOCKER: ${{ matrix.target.docker }}
+
+      - name: Archive install logs
+        run: make cleanup
+        env:
+          MOLECULE_KVM_IMAGE: ${{ matrix.image }}
+          MOLECULE_SCENARIO: ${{ matrix.scenario }}
+          MOLECULE_OUTPUT_DIR: /tmp/logs
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          RKE_RELEASE_RKE: ${{ matrix.target.rke }}
+          RKE_RELEASE_K8S: ${{ matrix.target.k8s }}
+          RKE_RELEASE_DOCKER: ${{ matrix.target.docker }}
+        if: always()
+
+      - name: Upload install logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: install-logs
+          path: |
+            /tmp/logs/*
+          if-no-files-found: ignore
+        if: always()

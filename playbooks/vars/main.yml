@@ -1,13 +1,11 @@
 ---
 # Defaults
 rke_defaults_url_api: "https://api.{{ rke_cluster_name }}"
-rke_defaults_release_rke: "v1.4.11"
+rke_defaults_release_rke: "v1.5.3"
 rke_defaults_release_k8s: "v1.24.17-rancher1-1"
-rke_defaults_release_docker: "20.10.24"
+rke_defaults_release_docker: "23.0.6"
 
 # Overridable values
-_rke_api_url: "{{ rke_api_url | default(rke_defaults_url_api) }}"
-_rke_api_set: "{{ rke_api_url is defined }}"
 _rke_release_rke: "{{ rke_release_rke | default(rke_defaults_release_rke) }}"
 _rke_release_k8s: "{{ rke_release_k8s | default(rke_defaults_release_k8s) }}"
 _rke_release_docker: "{{ rke_release_docker | default(rke_defaults_release_docker) }}"
@@ -19,6 +17,7 @@ _rke_retry_delay: "{{ rke_retry_delay | default(30) }}"
 # Hardcoded values
 rke_install_user: "{{ ansible_user_id }}"
 rke_install_root: /opt/rke
+rke_install_log: "{{ rke_install_root }}/install.log"
 rke_state_file: "{{ rke_install_root }}/cluster.rkestate"
 rke_bin_rke: /usr/local/bin/rke
 rke_bin_helm: /usr/local/bin/helm

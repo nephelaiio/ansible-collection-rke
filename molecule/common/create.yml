@@ -67,7 +67,7 @@
 
     - name: List cached images
       ansible.builtin.find:
-        paths: "{{ _libvirt_pool }}"
+        paths: "{{ _libvirt_path }}"
         recurse: false
       register: _cache_query
 

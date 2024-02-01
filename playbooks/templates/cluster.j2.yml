@@ -36,10 +36,12 @@ cloud_provider:
   name: {{ _provider }}
 {% endif %}
 
+{% if _api_url != '' %}
 authentication:
   strategy: x509
   sans:
     - {{ _api_url }}
+{% endif %}
 
 authorization:
   mode: rbac
