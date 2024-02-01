@@ -71,8 +71,6 @@ jobs:
       - name: Run molecule tests.
         run: make test
         env:
-          PY_COLORS: '1'
-          ANSIBLE_FORCE_COLOR: '1'
           MOLECULE_KVM_IMAGE: ${{ matrix.image }}
           MOLECULE_SCENARIO: ${{ matrix.scenario }}
           MOLECULE_OUTPUT_DIR: /tmp/logs

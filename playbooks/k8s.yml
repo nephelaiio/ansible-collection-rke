@@ -4,6 +4,7 @@
   vars_files:
     - main.yml
   vars:
+    k8s_cluster_name: "{{ rke_cluster_name }}"
     k8s_helm_bin: "{{ rke_k8s_helm_bin }}"
     k8s_metallb_speaker_secret: "{{ rke_metallb_speaker_secret }}"
     k8s_longhorn_deploy: "{{ rke_k8s_longhorn_deploy | default(false) }}"
