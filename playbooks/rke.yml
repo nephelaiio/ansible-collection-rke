@@ -44,7 +44,7 @@
         _control_hosts: "{{ rke_control_hosts }}"
         _worker_hosts: "{{ rke_worker_hosts }}"
         _provider: "{{ rke_cloud_provider | default('onpremise') }}"
-        _api_url: "{{ '' if (rke_api_url is not defined) else rke_api_url | urlsplit('hostname') }}"
+        _api_url: "{{ [] if (rke_api_url is not defined) else [rke_api_url | urlsplit('hostname')] }}"
         _k8s_release: "{{ _rke_release_k8s }}"
         _backup_interval: "{{ _rke_backup_interval }}"
         _backup_retention: "{{ _rke_backup_retention }}"
@@ -116,18 +116,24 @@
     - name: Initialize kubeconfig facts
       ansible.builtin.set_fact:
         _install_logs: "{{ hostvars['localhost']['_rke_install_logs'] }}"
-        _kubeconfig_install: "{{ _base_config | ansible.builtin.combine(_new_cluster) }}"
-        _kubeconfig_user: "{{ _base_config | ansible.builtin.combine(_new_cluster) }}"
+        _kubeconfig_install: "{{ _base_config | ansible.builtin.combine(_base_cluster) }}"
+        _kubeconfig_user: "{{ _base_config | ansible.builtin.combine(_user_cluster) }}"
         _clusterstate_content: "{{ hostvars['localhost']['_rke_clusterstate_content'] }}"
       vars:
         _base_config: "{{ hostvars['localhost']['_rke_kubeconfig_content'] | ansible.builtin.from_yaml }}"
         _base_server: "{{ _base_config.clusters[0].cluster.server }}"
-        _new_server:
+        _base_override:
+          cluster:
+            server: 'https://localhost:6443'
+        _base_cluster:
+          clusters:
+            - "{{ _base_config['clusters'][0] | ansible.builtin.combine(_base_override, recursive=true) }}"
+        _user_override:
           cluster:
             server: "{{ _base_server if (rke_api_url is not defined) else rke_api_url }}"
-        _new_cluster:
+        _user_cluster:
           clusters:
-            - "{{ _base_config['clusters'][0] | ansible.builtin.combine(_new_server, recursive=true) }}"
+            - "{{ _base_config['clusters'][0] | ansible.builtin.combine(_user_override, recursive=true) }}"
 
     - name: Debug kubeconfig install configuration
       ansible.builtin.debug:

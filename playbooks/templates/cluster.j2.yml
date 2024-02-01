@@ -36,12 +36,13 @@ cloud_provider:
   name: {{ _provider }}
 {% endif %}
 
-{% if _api_url != '' %}
 authentication:
   strategy: x509
   sans:
-    - {{ _api_url }}
-{% endif %}
+    - localhost
+{% for node in (( _api_url + _control_hosts + _worker_hosts) | unique) %}
+    - {{ node }}
+{% endfor %}
 
 authorization:
   mode: rbac
