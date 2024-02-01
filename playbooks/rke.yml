@@ -46,6 +46,8 @@
         _provider: "{{ rke_cloud_provider | default('onpremise') }}"
         _api_url: "{{ '' if (rke_api_url is not defined) else rke_api_url | urlsplit('hostname') }}"
         _k8s_release: "{{ _rke_release_k8s }}"
+        _backup_interval: "{{ _rke_backup_interval }}"
+        _backup_retention: "{{ _rke_backup_retention }}"
 
     - name: Stat cluster state file
       ansible.builtin.stat:

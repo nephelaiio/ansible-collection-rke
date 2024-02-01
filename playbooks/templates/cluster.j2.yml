@@ -57,3 +57,9 @@ monitoring:
 
 ingress:
   provider: none
+
+services:
+  etcd:
+    backup_config:
+      interval_hours: "{{ _backup_interval }}"
+      retention: "{{ _backup_retention }}"
