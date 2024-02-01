@@ -61,5 +61,5 @@ ingress:
 services:
   etcd:
     backup_config:
-      interval_hours: "{{ _backup_interval }}"
-      retention: "{{ _backup_retention }}"
+      interval_hours: {{ _backup_interval | int }}
+      retention: {{ _backup_retention | int }}
