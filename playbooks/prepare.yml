@@ -10,12 +10,6 @@
         apply:
           become: true
 
-    - name: Install required pips
-      ansible.builtin.pip:
-        name:
-          - kubernetes
-        extra_args: "--user"
-
 
 - name: Prepare RKE cluster members
   hosts: "{{ rke_control_group }}:{{ rke_worker_group }}"
