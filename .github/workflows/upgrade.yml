@@ -91,7 +91,7 @@ jobs:
           RKE_RELEASE_DOCKER: ${{ matrix.target.docker }}
 
       - name: Archive install logs
-        run: make
+        run: make cleanup
         env:
           MOLECULE_KVM_IMAGE: ${{ matrix.image }}
           MOLECULE_SCENARIO: ${{ matrix.scenario }}
