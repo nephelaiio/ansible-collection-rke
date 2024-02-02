@@ -117,7 +117,9 @@
       ansible.builtin.file:
         path: "{{ _state_backup }}"
         state: absent
-      when: _rke_state_end.stat.checksum == _rke_state_start.stat.checksum
+      when:
+        - _rke_state_start.stat.exists
+        - _rke_state_start.stat.checksum == _rke_state_end.stat.checksum
       changed_when: false
 
     - name: Stat install kubeconfig
@@ -129,7 +131,9 @@
       ansible.builtin.file:
         path: "{{ _install_config_backup }}"
         state: absent
-      when: _rke_config_end.stat.checksum == _rke_config_start.stat.checksum
+      when:
+        - _rke_config_start.stat.exists
+        - _rke_config_start.stat.checksum == _rke_config_end.stat.checksum
       changed_when: false
 
     - name: Distribute cluster install log
@@ -185,7 +189,6 @@
           clusters:
             - "{{ _install_config['clusters'][0] | ansible.builtin.combine(_install_override, recursive=true) }}"
         _install_patch: "{{ _install_config | ansible.builtin.combine(_install_cluster) }}"
-      when: _rke_config_end.stat.checksum != _rke_config_start.stat.checksum
 
     - name: Distribute install kubeconfig
       ansible.posix.synchronize:
