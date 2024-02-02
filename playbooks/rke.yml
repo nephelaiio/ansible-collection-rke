@@ -108,34 +108,6 @@
       register: rke_deploy_result
       until: rke_deploy_result.rc == 0
 
-    - name: Stat cluster state file
-      ansible.builtin.stat:
-        path: "{{ rke_state_file }}"
-      register: _rke_state_end
-
-    - name: Destroy kubeconfig backup
-      ansible.builtin.file:
-        path: "{{ _state_backup }}"
-        state: absent
-      when:
-        - _rke_state_start.stat.exists
-        - _rke_state_start.stat.checksum == _rke_state_end.stat.checksum
-      changed_when: false
-
-    - name: Stat install kubeconfig
-      ansible.builtin.stat:
-        path: "{{ _rke_config_install }}"
-      register: _rke_config_end
-
-    - name: Destroy cluster state backup
-      ansible.builtin.file:
-        path: "{{ _install_config_backup }}"
-        state: absent
-      when:
-        - _rke_config_start.stat.exists
-        - _rke_config_start.stat.checksum == _rke_config_end.stat.checksum
-      changed_when: false
-
     - name: Distribute cluster install log
       ansible.posix.synchronize:
         mode: pull
@@ -151,6 +123,7 @@
         dest: "{{ rke_state_file }}"
         archive: true
       loop: "{{ _all }}"
+      when: _rke_state_start.stat.exists
       delegate_to: "{{ item }}"
 
     - name: Distribute cluster state backup
