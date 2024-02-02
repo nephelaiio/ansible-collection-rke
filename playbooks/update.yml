@@ -4,43 +4,78 @@
   vars_files:
     - main.yml
   tasks:
-    - name: Register cluster nembers
-      tags: always
-      block:
-        - name: Query cluster nodes
-          kubernetes.core.k8s_info:
-            kind: Node
-          register: k8s_nodes_info
+    - name: Slurp kubeconfig file
+      ansible.builtin.slurp:
+        src: "{{ _rke_config_user }}"
+      register: _kubeconfig_slurp
 
-        - name: Register cluster nodes
+    - name: Create local k8s configuration
+      run_once: true
+      delegate_to: localhost
+      block:
+        - name: Create kubeconfig tempdir
+          ansible.builtin.tempfile:
+            state: directory
+            prefix: kubeconfig
+          register: kubeconfig_tmpdir
+
+        - name: Set kubeconfig facts
           ansible.builtin.set_fact:
-            _cluster_nodes: "{{ k8s_nodes_info.resources | map(attribute='metadata.name') }}"
-          delegate_to: localhost
-          delegate_facts: true
+            _kubeconfig_path: "{{ kubeconfig_tmpdir.path }}/config"
+            _kubeconfig_content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
 
-    - name: Register healthy cluster master nodes
-      tags: always
-      block:
-        - name: Query cluster master nodes
-          kubernetes.core.k8s_info:
-            kind: Node
-            label_selectors:
-              - node-role.kubernetes.io/controlplane=true
-          register: k8s_nodes_info
+        - name: Create local kubeconfig
+          ansible.builtin.copy:
+            dest: "{{ _kubeconfig_path }}"
+            content: "{{ _kubeconfig_content }}"
+            mode: 0600
 
-        - name: Create healthy cluster master group
-          ansible.builtin.add_host:
-            hostname: "{{ item }}"
-            groups:
-              - rke_play_master_hosts
-          vars:
-            _rke_node: "{{ k8s_nodes_info.resources | selectattr('metadata.name', 'equalto', item) | list }}"
-            _rke_node_conditions: "{{ _rke_node | map(attribute='status.conditions') | flatten }}"
-            _rke_node_ready: "{{ _rke_node_conditions | selectattr('type', 'equalto', 'Ready') }}"
-            _rke_node_healthy: "{{ _rke_node_ready | selectattr('status', 'equalto', 'True') | length > 0 }}"
-            _rke_master_healthy: "{{ 'true' if _rke_node_healthy else 'false' }}"
-          loop: "{{ ansible_play_hosts }}"
-          when: _rke_master_healthy | bool
+    - name: Query cluster nodes
+      kubernetes.core.k8s_info:
+        kind: Node
+        kubeconfig: "{{ _kubeconfig_path }}"
+      register: k8s_nodes_info
+      delegate_to: localhost
+
+    - name: Register cluster nodes
+      ansible.builtin.set_fact:
+        _cluster_nodes: "{{ k8s_nodes_info.resources | map(attribute='metadata.name') }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+    - name: Query cluster master nodes
+      kubernetes.core.k8s_info:
+        kind: Node
+        label_selectors:
+          - node-role.kubernetes.io/controlplane=true
+        kubeconfig: "{{ _kubeconfig_path }}"
+      register: k8s_nodes_info
+      delegate_to: localhost
+
+    - name: Create healthy cluster master group
+      ansible.builtin.add_host:
+        hostname: "{{ item }}"
+        groups:
+          - rke_play_master_hosts
+      vars:
+        _rke_node: "{{ k8s_nodes_info.resources | selectattr('metadata.name', 'equalto', item) | list }}"
+        _rke_node_conditions: "{{ _rke_node | map(attribute='status.conditions') | flatten }}"
+        _rke_node_ready: "{{ _rke_node_conditions | selectattr('type', 'equalto', 'Ready') }}"
+        _rke_node_healthy: "{{ _rke_node_ready | selectattr('status', 'equalto', 'True') | length > 0 }}"
+        _rke_master_healthy: "{{ 'true' if _rke_node_healthy else 'false' }}"
+      loop: "{{ ansible_play_hosts }}"
+      when: _rke_master_healthy | bool
+
+    - name: Set configuration facts
+      ansible.builtin.set_fact:
+        k8s_kubeconfig: "{{ _kubeconfig_content }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+    - name: Destroy kubeconfig tempdir
+      ansible.builtin.file:
+        dest: "{{ kubeconfig_tmpdir.path }}"
+        state: absent
 
 
 - name: Update OS on cluster members
@@ -58,12 +93,39 @@
       ansible.builtin.meta: end_host
       when: _rke_hostname not in _rke_cluster_nodes
 
+    - name: Create kubeconfig tempdir
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: kubeconfig
+      register: kubeconfig_tmpdir
+
+    - name: Create local k8s configuration
+      run_once: true
+      delegate_to: localhost
+      block:
+        - name: Create kubeconfig tempdir
+          ansible.builtin.tempfile:
+            state: directory
+            prefix: kubeconfig
+          register: kubeconfig_tmpdir
+
+        - name: Set kubeconfig facts
+          ansible.builtin.set_fact:
+            _kubeconfig_path: "{{ kubeconfig_tmpdir.path }}/config"
+            _kubeconfig_content: "{{ hostvars['localhost']['k8s_kubeconfig'] }}"
+
+        - name: Create local kubeconfig
+          ansible.builtin.copy:
+            dest: "{{ _kubeconfig_path }}"
+            content: "{{ _kubeconfig_content }}"
+            mode: 0600
+
     - name: Cordon cluster node
-      delegate_to: "{{ _rke_play_master }}"
       block:
         - name: Wait for pods to be in a running state
           kubernetes.core.k8s_info:
             kind: Pod
+            kubeconfig: "{{ _kubeconfig_path }}"
           vars:
             _k8s_pod_resources: "{{ k8s_pod_info.resources | list }}"
             _k8s_pod_status: "{{ _k8s_pod_resources | map(attribute='status') }}"
@@ -78,6 +140,7 @@
           retries: 30
           delay: 10
           until: _k8s_pod_filter | length == 0
+          delegate_to: localhost
 
         - name: Drain cluster node
           block:
@@ -85,12 +148,14 @@
               kubernetes.core.k8s_drain:
                 name: "{{ _rke_hostname }}"
                 state: drain
+                kubeconfig: "{{ _kubeconfig_path }}"
                 delete_options:
                   delete_emptydir_data: true
                   ignore_daemonsets: true
                   force: true
                   wait_sleep: 10
                   wait_timeout: 300
+              delegate_to: localhost
 
           rescue:
             - name: Force cluster node drain
@@ -100,10 +165,12 @@
                   --force=true \
                   --ignore-daemonsets=true \
                   --timeout=300s
+              delegate_to: "{{ _rke_play_master if _rke_play_master != _rke_hostname else _rke_play_standby }}"
 
         - name: Query cluster node status
           kubernetes.core.k8s_info:
             kind: Node
+            kubeconfig: "{{ _kubeconfig_path }}"
           register: k8s_node_info
 
         - name: Verify cluster node cordon status
@@ -133,11 +200,12 @@
           ansible.builtin.reboot:
 
     - name: Uncordon cluster node
-      delegate_to: "{{ _rke_play_master if _rke_play_master != _rke_hostname else _rke_play_standby }}"
+      delegate_to: localhost
       block:
         - name: Wait for cluster node to be ready
           kubernetes.core.k8s_info:
             kind: Node
+            kubeconfig: "{{ _kubeconfig_path }}"
           vars:
             _hostname: "{{ _rke_hostname }}"
             _k8s_node_info: "{{ [] if not 'resources' in k8s_node_info else k8s_node_info.resources }}"
@@ -155,13 +223,14 @@
         - name: Uncordon cluster node
           kubernetes.core.k8s_drain:
             name: "{{ _rke_hostname }}"
+            kubeconfig: "{{ _kubeconfig_path }}"
             state: uncordon
           register: rke_uncordon
-          delegate_to: "{{ _rke_play_master }}"
 
         - name: Wait for cluster node to be schedulable
           kubernetes.core.k8s_info:
             kind: Node
+            kubeconfig: "{{ _kubeconfig_path }}"
           vars:
             _hostname: "{{ _rke_hostname }}"
             _k8s_node_resources: "{{ k8s_node_info.resources | list }}"
@@ -169,7 +238,6 @@
             _k8s_node_spec: "{{ _k8s_node_filter | map(attribute='spec') | list }}"
             _k8s_node_cordoned: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') }}"
           register: k8s_node_info
-          delegate_to: "{{ _rke_play_master }}"
           retries: 20
           delay: 5
           until:
@@ -183,6 +251,7 @@
         - name: Wait for pods to be running
           kubernetes.core.k8s_info:
             kind: Pod
+            kubeconfig: "{{ _kubeconfig_path }}"
           vars:
             _hostname: "{{ _rke_hostname }}"
             _k8s_pod_resources: "{{ k8s_pod_info.resources | list }}"
@@ -200,4 +269,3 @@
           retries: 30
           delay: 10
           until: _k8s_pod_notready | length == 0
-          delegate_to: "{{ _rke_play_master }}"
