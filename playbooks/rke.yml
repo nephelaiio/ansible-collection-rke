@@ -183,8 +183,9 @@
     - name: Distribute cluster state
       ansible.builtin.copy:
         dest: "{{ rke_state_file }}"
-        content: "{{ _clusterstate_content | ansible.builtin.to_nice_yaml(indent=2) }}"
+        content: "{{ _clusterstate_content }}"
         mode: 0600
+        backup: true
 
     - name: Wait for cluster startup
       ansible.builtin.command:
