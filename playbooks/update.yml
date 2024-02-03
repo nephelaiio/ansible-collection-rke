@@ -172,6 +172,7 @@
             kind: Node
             kubeconfig: "{{ _kubeconfig_path }}"
           register: k8s_node_info
+          delegate_to: localhost
 
         - name: Verify cluster node cordon status
           ansible.builtin.fail:
@@ -219,6 +220,7 @@
           until:
             - _k8s_node_status | length > 0
             - _k8s_node_conditions | selectattr('type', 'equalto', 'Ready') | length > 0
+          delegate_to: localhost
 
         - name: Uncordon cluster node
           kubernetes.core.k8s_drain:
@@ -226,6 +228,7 @@
             kubeconfig: "{{ _kubeconfig_path }}"
             state: uncordon
           register: rke_uncordon
+          delegate_to: localhost
 
         - name: Wait for cluster node to be schedulable
           kubernetes.core.k8s_info:
@@ -243,6 +246,7 @@
           until:
             - _k8s_node_spec | length > 0
             - _k8s_node_cordoned | length == 0
+          delegate_to: localhost
 
         - name: Wait for pods to be created
           ansible.builtin.pause:
