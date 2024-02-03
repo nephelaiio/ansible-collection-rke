@@ -1,20 +1,17 @@
 ---
 - name: Prepare RKE cluster masters
   hosts: "{{ rke_control_group }}"
+  become: true
   vars_files:
     - main.yml
   tasks:
     - name: Include pip role
       ansible.builtin.include_role:
         name: nephelaiio.rke.pip
-        apply:
-          become: true
 
-    - name: Install required pips
-      ansible.builtin.pip:
-        name:
-          - kubernetes
-        extra_args: "--user"
+    - name: Install rsync
+      ansible.builtin.package:
+        name: rsync
 
 
 - name: Prepare RKE cluster members

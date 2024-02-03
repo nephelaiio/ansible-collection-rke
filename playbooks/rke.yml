@@ -44,8 +44,10 @@
         _control_hosts: "{{ rke_control_hosts }}"
         _worker_hosts: "{{ rke_worker_hosts }}"
         _provider: "{{ rke_cloud_provider | default('onpremise') }}"
-        _api_url: "{{ '' if (rke_api_url is not defined) else rke_api_url | urlsplit('hostname') }}"
+        _api_url: "{{ [] if (rke_api_url is not defined) else [rke_api_url | urlsplit('hostname')] }}"
         _k8s_release: "{{ _rke_release_k8s }}"
+        _backup_interval: "{{ _rke_backup_interval }}"
+        _backup_retention: "{{ _rke_backup_retention }}"
 
     - name: Stat cluster state file
       ansible.builtin.stat:
@@ -62,29 +64,41 @@
   vars_files:
     - main.yml
   vars:
+    _all: "{{ groups[rke_control_group] }}"
     _installed: "{{ groups['_rke_installed'] | default([]) }}"
     _uninstalled: "{{ groups['_rke_uninstalled'] | default([]) }}"
     _targets: "{{ (_installed | length > 0) | ternary(_installed, _uninstalled) }}"
+    _timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+    _log: "{{ rke_install_log }}.{{ _timestamp }}"
+    _state_backup: "{{ rke_state_file }}.{{ _timestamp }}"
+    _config_install_backup: "{{ _rke_config_install }}.{{ _timestamp }}"
   tasks:
-    - name: Stat cluster state file
-      ansible.builtin.stat:
-        path: "{{ rke_state_file }}"
-      register: _rke_state_query
-
     - name: Deploy/Update RKE cluster
       ansible.builtin.shell:
-        cmd: "{{ rke_bin_rke }} up {{ _args }} > {{ rke_install_log }}"
+        cmd: "{{ rke_bin_rke }} up > {{ _log }}"
         chdir: "{{ rke_install_root }}"
-      vars:
-        _args: "{{ _rke_state_query.stat.exists | ternary('--update-only', '') }}"
       retries: "{{ _rke_retry_num }}"
       delay: "{{ _rke_retry_delay }}"
       register: rke_deploy_result
       until: rke_deploy_result.rc == 0
 
+    - name: Backup cluster state
+      ansible.builtin.copy:
+        src: "{{ rke_state_file }}"
+        dest: "{{ _state_backup }}"
+        remote_src: true
+      changed_when: false
+
+    - name: Backup install kubeconfig
+      ansible.builtin.copy:
+        src: "{{ _rke_config_install }}"
+        dest: "{{ _config_install_backup }}"
+        remote_src: true
+      changed_when: false
+
     - name: Slurp cluster install log
       ansible.builtin.slurp:
-        src: "{{ rke_install_log }}"
+        src: "{{ _log }}"
       register: _installlog_slurp
 
     - name: Slurp kube configfile
@@ -114,18 +128,24 @@
     - name: Initialize kubeconfig facts
       ansible.builtin.set_fact:
         _install_logs: "{{ hostvars['localhost']['_rke_install_logs'] }}"
-        _kubeconfig_install: "{{ _base_config | ansible.builtin.combine(_new_cluster) }}"
-        _kubeconfig_user: "{{ _base_config | ansible.builtin.combine(_new_cluster) }}"
+        _kubeconfig_install: "{{ _base_config | ansible.builtin.combine(_base_cluster) }}"
+        _kubeconfig_user: "{{ _base_config | ansible.builtin.combine(_user_cluster) }}"
         _clusterstate_content: "{{ hostvars['localhost']['_rke_clusterstate_content'] }}"
       vars:
         _base_config: "{{ hostvars['localhost']['_rke_kubeconfig_content'] | ansible.builtin.from_yaml }}"
         _base_server: "{{ _base_config.clusters[0].cluster.server }}"
-        _new_server:
+        _base_override:
+          cluster:
+            server: 'https://localhost:6443'
+        _base_cluster:
+          clusters:
+            - "{{ _base_config['clusters'][0] | ansible.builtin.combine(_base_override, recursive=true) }}"
+        _user_override:
           cluster:
             server: "{{ _base_server if (rke_api_url is not defined) else rke_api_url }}"
-        _new_cluster:
+        _user_cluster:
           clusters:
-            - "{{ _base_config['clusters'][0] | ansible.builtin.combine(_new_server, recursive=true) }}"
+            - "{{ _base_config['clusters'][0] | ansible.builtin.combine(_user_override, recursive=true) }}"
 
     - name: Debug kubeconfig install configuration
       ansible.builtin.debug:
@@ -143,21 +163,18 @@
       ansible.builtin.copy:
         dest: "{{ rke_install_log }}"
         content: "{{ _install_logs }}"
-        backup: true
         mode: 0600
 
     - name: Archive install logs
       ansible.builtin.copy:
         dest: "{{ rke_install_log }}.{{ ansible_date_time.iso8601_basic_short }}"
         content: "{{ _install_logs }}"
-        backup: true
         mode: 0600
 
     - name: Distribute install kubeconfig
       ansible.builtin.copy:
         dest: "{{ _rke_config_install }}"
         content: "{{ _kubeconfig_install | ansible.builtin.to_nice_yaml(indent=2) }}"
-        backup: true
         mode: 0600
 
     - name: Create kubeconfig user directory
@@ -175,7 +192,7 @@
     - name: Distribute cluster state
       ansible.builtin.copy:
         dest: "{{ rke_state_file }}"
-        content: "{{ _clusterstate_content | ansible.builtin.to_nice_yaml(indent=2) }}"
+        content: "{{ _clusterstate_content }}"
         mode: 0600
 
     - name: Wait for cluster startup

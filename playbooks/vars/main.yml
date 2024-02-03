@@ -2,7 +2,7 @@
 # Defaults
 rke_defaults_url_api: "https://api.{{ rke_cluster_name }}"
 rke_defaults_release_rke: "v1.5.3"
-rke_defaults_release_k8s: "v1.24.17-rancher1-1"
+rke_defaults_release_k8s: "v1.27.8-rancher2-2"
 rke_defaults_release_docker: "23.0.6"
 
 # Overridable values
@@ -13,6 +13,8 @@ _rke_config_install: "{{ rke_install_root }}/kube_config_cluster.yml"
 _rke_config_user: "~{{ ansible_user_id }}/.kube/config"
 _rke_retry_num: "{{ rke_retry_num | default(10) }}"
 _rke_retry_delay: "{{ rke_retry_delay | default(30) }}"
+_rke_backup_interval: "{{ rke_backup_interval | default(1) }}"
+_rke_backup_retention: "{{ rke_backup_interval | default(24) }}"
 
 # Hardcoded values
 rke_install_user: "{{ ansible_user_id }}"

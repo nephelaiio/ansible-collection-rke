@@ -15,13 +15,6 @@
         name: python-is-python3
       when: ansible_os_family == 'Debian'
 
-    - name: Add host entry for rke api
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        regexp: ".*{{ rke_api_url | urlsplit('hostname') }}.*"
-        line: "{{ ansible_default_ipv4.address }} {{ rke_api_url | urlsplit('hostname') }}"
-      when: rke_api_url is defined
-
     - name: Add controller host entry for rke api
       ansible.builtin.lineinfile:
         path: /etc/hosts

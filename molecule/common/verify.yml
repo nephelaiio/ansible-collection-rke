@@ -68,7 +68,7 @@
 
     - name: Verify kubeconfig api configuration
       ansible.builtin.assert:
-        that: _kubeconfig_server == rke_api_url
+        that: _kubeconfig_server == "https://localhost:6443"
       vars:
         _kubeconfig_content: "{{ _kubeconfig_slurp['content'] | b64decode | ansible.builtin.from_yaml }}"
         _kubeconfig_server: "{{ _kubeconfig_content.clusters[0].cluster.server }}"
