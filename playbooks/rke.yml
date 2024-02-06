@@ -30,6 +30,7 @@
         mode: 0755
         owner: root
         group: root
+        force: true
       become: true
 
     - name: Build RKE cluster file
