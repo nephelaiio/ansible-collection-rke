@@ -198,6 +198,9 @@
     - name: Wait for cluster startup
       ansible.builtin.command:
         cmd: kubectl get nodes
+      environment:
+        KUBECONFIG: "{{ _rke_config_install }}"
+      run_once: true
       register: _kubectl_query
       retries: "{{ _rke_retry_num }}"
       delay: "{{ _rke_retry_delay }}"
