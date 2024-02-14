@@ -20,6 +20,10 @@
     k8s_retry_delay: "{{ _rke_retry_num }}"
     k8s_retry_num: "{{ _rke_retry_delay }}"
   tasks:
+    - name: Check cluster name param
+      ansible.builtin.assert:
+        that: rke_cluster_name is defined
+
     - name: Slurp kubeconfig file
       ansible.builtin.slurp:
         src: "{{ _rke_config_user }}"

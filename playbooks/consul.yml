@@ -26,6 +26,10 @@
   vars_files:
     - main.yml
   tasks:
+    - name: Check cluster name param
+      ansible.builtin.assert:
+        that: rke_cluster_name is defined
+
     - name: Deploy Consul
       ansible.builtin.include_role:
         name: nephelaiio.rke.consul
