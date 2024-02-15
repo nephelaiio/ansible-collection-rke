@@ -4,6 +4,10 @@
   vars_files:
     - main.yml
   tasks:
+    - name: Check cluster name param
+      ansible.builtin.assert:
+        that: rke_cluster_name is defined
+
     - name: Debug rke install target
       ansible.builtin.debug:
         msg: |
