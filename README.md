@@ -13,6 +13,7 @@ An [ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/
 ## Collection playbooks
 
 * nephelaiio.rke.install: Install and (re)configure cluster
+* nephelaiio.rke.k8s: Deploy base K8s services
 * nephelaiio.rke.restart: Stop mongos cluster services
 * nephelaiio.rke.update: Start mongos cluster services
 
