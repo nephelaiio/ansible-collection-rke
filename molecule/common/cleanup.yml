@@ -53,23 +53,32 @@
               delegate_to: localhost
 
         - name: Stat install log
-          ansible.builtin.stat:
-            path: /opt/rke/install.log
-          register: _rke_installlog_stat
+          ansible.builtin.find:
+            path: /opt/rke
+            patterns:
+              - 'install.log'
+              - 'install.log.*'
+          register: _rke_installlog_files
 
         - name: Archive install log
-          when: _rke_installlog_stat.stat.exists
+          when: _rke_installlog_files.matched > 0
           block:
-            - name: Slurp install log
+            - name: Slurp install logs
               ansible.builtin.slurp:
-                src: /opt/rke/install.log
+                src: "{{ item }}"
+              loop: "{{  _rke_installlog_files.files | map(attribute='path') }}"
               register: _rke_installlog_slurp
 
-            - name: Create install log archive
+            - name: Create install log archives
               ansible.builtin.copy:
-                dest: "{{ _logfile }}.install.log.{{ ansible_date_time.iso8601_basic_short }}"
-                content: "{{ _rke_installlog_slurp['content'] | b64decode }}"
+                dest: "{{ _logarchive }}"
+                content: "{{ item['content'] | b64decode }}"
                 mode: 0644
+              vars:
+                _logarchive: "{{ _logfile }}.{{ item.source | basename }}"
+              loop_control:
+                label: "{{  _logarchive }}"
+              loop: "{{ _rke_installlog_slurp.results }}"
               delegate_to: localhost
 
         - name: Stat cluster state
