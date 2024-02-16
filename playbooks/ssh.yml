@@ -22,5 +22,5 @@
         key: "{{ rke_publickey.public_key }}"
       loop_control:
         label: "{{ rke_install_user }}@{{ inventory_hostname }} -> {{ item }}"
-      loop: "{{ groups[rke_control_group] }}"
+      loop: "{{ groups[rke_worker_group] }}"
       delegate_to: "{{ item }}"
