@@ -64,7 +64,6 @@ provisioner:
           molecule_install_dir: "{{ lookup('env', 'MOLECULE_OUTPUT_DIR', default='/tmp/logs') }}"
           molecule_install_log: "{{ molecule_install_dir }}/${MOLECULE_SCENARIO_NAME}"
           rke_cluster_name: rke.nephelaiio.io
-          rke_ssh_key: "/tmp/id_rsa"
           rke_api_url: "https://api.{{ rke_cluster_name }}:6443"
 verifier:
   name: ansible

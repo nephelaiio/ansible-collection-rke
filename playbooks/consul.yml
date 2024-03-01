@@ -42,3 +42,6 @@
         consul_datacenter: "{{ rke_cluster_name | regex_replace('[.]', '_') }}"
         consul_encrypt_enable: false
         consul_install_dependencies: false
+        consul_os_packages:
+          - unzip
+          - acl

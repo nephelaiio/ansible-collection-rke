@@ -22,16 +22,31 @@
     - name: Gather facts
       ansible.builtin.setup:
 
+    - name: Create install log directory
+      ansible.builtin.file:
+        dest: "{{ _logfile | dirname }}"
+        state: directory
+        mode: 0755
+      delegate_to: localhost
+      run_once: true
+
+    - name: Archive hostfile
+      block:
+        - name: Slurp hostfile
+          ansible.builtin.slurp:
+            src: /etc/hosts
+          register: _rke_hostfile_slurp
+
+        - name: Create cluster configuration archive
+          ansible.builtin.copy:
+            dest: "{{ _logfile }}.{{ inventory_hostname }}.hostfile"
+            content: "{{ _rke_hostfile_slurp['content'] | b64decode }}"
+            mode: 0644
+          delegate_to: localhost
+
     - name: Archive RKE install logs
       run_once: true
       block:
-        - name: Create install log directory
-          ansible.builtin.file:
-            dest: "{{ _logfile | dirname }}"
-            state: directory
-            mode: 0755
-          delegate_to: localhost
-
         - name: Stat cluster configuration
           ansible.builtin.stat:
             path: /opt/rke/cluster.yml

@@ -2,6 +2,7 @@
 nodes:
 {% for node in ((_control_hosts + _worker_hosts) | unique) %}
   - address: "{{ node }}"
+    ssh_key_path: "{{ _keypath }}"
 {% if _provider is search('aws') %}
     hostname_override: "{{ node }}"
     internal_address: "{{ hostvars[node].ansible_host }}"
