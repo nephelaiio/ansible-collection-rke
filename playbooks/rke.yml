@@ -44,6 +44,7 @@
         owner: "{{ _install_user }}"
         mode: 0600
       vars:
+        _keypath: "{{ rke_ssh_key }}"
         _cluster_name: "{{ rke_cluster_name }}"
         _iface_name: "{{ ansible_default_ipv4.interface }}"
         _control_hosts: "{{ rke_control_hosts }}"
