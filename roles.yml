@@ -5,19 +5,19 @@ roles:
     version: 0.1.33
   - name: k8s_repo
     src: https://github.com/nephelaiio/ansible-role-k8s_repo.git
-    version: 0.0.2
+    version: 0.0.3
   - name: docker
     src: https://github.com/nephelaiio/ansible-role-docker.git
-    version: 6.0.15
+    version: 6.0.19
   - name: helm
     src: https://github.com/geerlingguy/ansible-role-helm.git
     version: 1.0.1
   - name: consul
     src: https://github.com/ansible-community/ansible-consul.git
-    version: master
+    version:  master
   - name: pip
     src: https://github.com/nephelaiio/ansible-role-pip.git
-    version: 6.0.1
+    version: 6.0.7
     scm: git
   - name: update
     src: https://github.com/robertdebock/ansible-role-update.git
