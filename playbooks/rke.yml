@@ -65,7 +65,8 @@
 
 
 - name: Deploy RKE cluster
-  hosts: "{{ _targets | first }}"
+  hosts: "{{ _targets }}"
+  run_once: true
   vars_files:
     - main.yml
   vars:
