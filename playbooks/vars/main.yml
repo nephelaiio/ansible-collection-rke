@@ -14,7 +14,8 @@ _rke_config_user: "~{{ ansible_user_id }}/.kube/config"
 _rke_retry_num: "{{ rke_retry_num | default(10) }}"
 _rke_retry_delay: "{{ rke_retry_delay | default(30) }}"
 _rke_backup_interval: "{{ rke_backup_interval | default(1) }}"
-_rke_backup_retention: "{{ rke_backup_interval | default(24) }}"
+_rke_backup_retention: "{{ rke_backup_retention | default(24) }}"
+_rke_evict_timeout: "{{ rke_evict_timeout | default(300) }}"
 
 # Hardcoded values
 rke_install_user: "{{ ansible_user_id }}"

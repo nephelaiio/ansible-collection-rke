@@ -137,8 +137,8 @@
             _k8s_pod_reasons: "{{ _k8s_pod_falsestatus | selectattr('reason', 'defined') }}"
             _k8s_pod_filter: "{{ _k8s_pod_reasons | selectattr('reason', 'equalto', 'ContainersNotReady') }}"
           register: k8s_pod_info
-          retries: 30
-          delay: 10
+          retries: "{{ _rke_retry_num }}"
+          delay: "{{ _rke_retry_delay }}"
           until: _k8s_pod_filter | length == 0
           delegate_to: localhost
 
@@ -154,7 +154,7 @@
                   ignore_daemonsets: true
                   force: true
                   wait_sleep: 10
-                  wait_timeout: 300
+                  wait_timeout: "{{ _rke_evict_timeout }}"
               delegate_to: localhost
 
           rescue:
@@ -164,7 +164,7 @@
                   --delete-emptydir-data=true \
                   --force=true \
                   --ignore-daemonsets=true \
-                  --timeout=300s
+                  --timeout={{ _rke_evict_timeout }}s
               delegate_to: "{{ _rke_play_master if _rke_play_master != _rke_hostname else _rke_play_standby }}"
 
         - name: Query cluster node status
@@ -215,8 +215,8 @@
             _k8s_node_status: "{{ _k8s_node_filter | map(attribute='status') }}"
             _k8s_node_conditions: "{{ _k8s_node_status | list | map(attribute='conditions') | flatten }}"
           register: k8s_node_info
-          retries: 20
-          delay: 5
+          retries: "{{ _rke_retry_num }}"
+          delay: "{{ _rke_retry_delay }}"
           until:
             - _k8s_node_status | length > 0
             - _k8s_node_conditions | selectattr('type', 'equalto', 'Ready') | length > 0
@@ -241,8 +241,8 @@
             _k8s_node_spec: "{{ _k8s_node_filter | map(attribute='spec') | list }}"
             _k8s_node_cordoned: "{{ _k8s_node_spec | selectattr('unschedulable', 'defined') }}"
           register: k8s_node_info
-          retries: 20
-          delay: 5
+          retries: "{{ _rke_retry_num }}"
+          delay: "{{ _rke_retry_delay }}"
           until:
             - _k8s_node_spec | length > 0
             - _k8s_node_cordoned | length == 0
@@ -270,6 +270,6 @@
             _k8s_pod_faled_reason: "{{ _k8s_pod_failed | selectattr('reason', 'defined') }}"
             _k8s_pod_notready: "{{ _k8s_pod_failed | selectattr('reason', 'equalto', 'ContainersNotReady') }}"
           register: k8s_pod_info
-          retries: 30
-          delay: 10
+          retries: "{{ _rke_retry_num }}"
+          delay: "{{ _rke_retry_delay }}"
           until: _k8s_pod_notready | length == 0
