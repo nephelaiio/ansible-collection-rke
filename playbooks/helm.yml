@@ -1,6 +1,6 @@
 ---
 - name: Query RKE component versions
-  hosts: localhost
+  hosts: "{{ rke_localgroup | default('localhost') }}"
   vars_files:
     - main.yml
   tasks:
@@ -18,7 +18,7 @@
 
 
 - name: Prepare RKE cluster members
-  hosts: "{{ rke_control_group }}:localhost"
+  hosts: "{{ rke_control_group }}:{{ rke_localgroup | default('localhost') }}"
   become: true
   vars_files:
     - main.yml
