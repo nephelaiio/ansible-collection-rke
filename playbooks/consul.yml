@@ -1,6 +1,7 @@
 ---
 - name: Query RKE component versions
-  hosts: localhost
+  hosts: "{{ rke_localgroup | default('localhost') }}"
+  run_once: true
   vars_files:
     - main.yml
   tasks:

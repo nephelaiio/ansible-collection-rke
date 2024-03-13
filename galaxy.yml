@@ -1,10 +1,10 @@
 ---
 namespace: nephelaiio
 name: rke
-version: 0.0.24
+version: 0.0.25
 readme: README.md
 authors:
-  - Ted Cook <teddyphreak@users.noreply.github.com>
+  - Ted Cook <358176+teddyphreak@users.noreply.github.com>
 description: RKE collection
 license:
   - MIT

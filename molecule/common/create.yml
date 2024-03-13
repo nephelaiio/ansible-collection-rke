@@ -119,7 +119,6 @@
         - name: Manage KVM guests
           when: inventory_hostname not in guest_query.stdout_lines
           block:
-
             - name: Create KVM guest disks
               ansible.builtin.copy:
                 remote_src: true
