@@ -20,7 +20,7 @@
 
 - name: Prepare RKE cluster members
   hosts: "{{ rke_control_group }}:{{ rke_localgroup | default('localhost') }}"
-  become: "{{ 'false' | bool if ansible_os_family == 'Darwin' else 'true' | bool }}"
+  become: "{{ ansible_os_family != 'Darwin' }}"
   vars_files:
     - main.yml
   tasks:
