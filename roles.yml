@@ -2,7 +2,7 @@
 roles:
   - name: k8s
     src: https://github.com/nephelaiio/ansible-role-k8s.git
-    version: 0.1.34
+    version: 0.2.3
   - name: k8s_repo
     src: https://github.com/nephelaiio/ansible-role-k8s_repo.git
     version: 0.0.4
