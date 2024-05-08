@@ -2,17 +2,26 @@
 - name: Prepare cluster nodes
   ansible.builtin.import_playbook: nephelaiio.rke.prepare
 
+
 - name: Deploy Helm
   ansible.builtin.import_playbook: nephelaiio.rke.helm
+
 
 - name: Deploy Docker
   ansible.builtin.import_playbook: nephelaiio.rke.docker
 
+
 - name: Configure SSH access
   ansible.builtin.import_playbook: nephelaiio.rke.ssh
+
 
 - name: Deploy RKE cluster
   ansible.builtin.import_playbook: nephelaiio.rke.rke
 
+
 - name: Deploy Consul
-  ansible.builtin.import_playbook: nephelaiio.rke.consul
+  ansible.builtin.import_playbook: nephelaiio.consul.install
+  vars:
+    consul_group_name: "{{ _rke_consul_group_name }}"
+    consul_role: server
+    consul_install_from_repo: true
