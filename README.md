@@ -5,6 +5,11 @@
 
 An [ansible collection](https://galaxy.ansible.com/ui/repo/published/nephelaiio/rke/) to install and manage rke clusters
 
+## ToDo
+
+* Add option to configure MetalLB in BGP mode
+* Add MetalLB BGP mode test scenario
+
 ## Collection Variables
 
 The following is the list of parameters intended for end-user manipulation: 
