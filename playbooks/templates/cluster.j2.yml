@@ -7,7 +7,7 @@ nodes:
     hostname_override: "{{ node }}"
     internal_address: "{{ hostvars[node].ansible_host }}"
 {% endif %}
-    user: "{{ rke_install_user }}"
+    user: "{{ _rke_install_user }}"
     role:
 {% if node in _worker_hosts %}
       - worker

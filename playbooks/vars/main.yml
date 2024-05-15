@@ -11,19 +11,19 @@ _rke_release_consul: "{{ rke_release_consul | default('1.18.1-1') }}"
 _rke_release_rke: "{{ rke_release_rke | default(rke_defaults_release_rke) }}"
 _rke_release_k8s: "{{ rke_release_k8s | default(rke_defaults_release_k8s) }}"
 _rke_release_docker: "{{ rke_release_docker | default(rke_defaults_release_docker) }}"
-_rke_config_install: "{{ rke_install_root }}/kube_config_cluster.yml"
+_rke_config_install: "{{ _rke_install_root }}/kube_config_cluster.yml"
 _rke_config_user: "~{{ ansible_user_id }}/.kube/config"
 _rke_retry_num: "{{ rke_retry_num | default(10) }}"
 _rke_retry_delay: "{{ rke_retry_delay | default(30) }}"
 _rke_backup_interval: "{{ rke_backup_interval | default(1) }}"
 _rke_backup_retention: "{{ rke_backup_retention | default(24) }}"
 _rke_evict_timeout: "{{ rke_evict_timeout | default(300) }}"
+_rke_install_user: "{{ rke_install_user | default(ansible_user_id) }}"
+_rke_install_root: "{{ rke_install_root | default('/opt/rke') }}"
 
 # Hardcoded values
-rke_install_user: "{{ ansible_user_id }}"
-rke_install_root: /opt/rke
-rke_install_log: "{{ rke_install_root }}/install.log"
-rke_state_file: "{{ rke_install_root }}/cluster.rkestate"
+rke_install_log: "{{ _rke_install_root }}/install.log"
+rke_state_file: "{{ _rke_install_root }}/cluster.rkestate"
 rke_bin_rke: /usr/local/bin/rke
 rke_bin_helm: /usr/local/bin/helm
 rke_ssh_key: ~/.ssh/id_rsa

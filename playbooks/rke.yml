@@ -16,8 +16,8 @@
 
     - name: Set install facts
       ansible.builtin.set_fact:
-        _install_root: "{{ rke_install_root }}"
-        _install_user: "{{ rke_install_user }}"
+        _install_root: "{{ _rke_install_root }}"
+        _install_user: "{{ _rke_install_user }}"
 
     - name: Create cluster directory structure
       ansible.builtin.file:
@@ -83,7 +83,7 @@
     - name: Deploy/Update RKE cluster
       ansible.builtin.shell:
         cmd: "{{ rke_bin_rke }} up > {{ _log }}"
-        chdir: "{{ rke_install_root }}"
+        chdir: "{{ _rke_install_root }}"
       retries: "{{ _rke_retry_num }}"
       delay: "{{ _rke_retry_delay }}"
       register: rke_deploy_result
