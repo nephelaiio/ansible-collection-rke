@@ -5,10 +5,6 @@
   vars_files:
     - main.yml
   tasks:
-    - name: Include pip role
-      ansible.builtin.include_role:
-        name: nephelaiio.rke.pip
-
     - name: Install rsync
       ansible.builtin.package:
         name: rsync
