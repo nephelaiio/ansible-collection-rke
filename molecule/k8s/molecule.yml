@@ -59,17 +59,22 @@ provisioner:
           libvirt_user: molecule
           libvirt_platforms: "{{ molecule_yml.platforms }}"
           molecule_net_prefix: "{{ libvirt_address | ansible.utils.ipaddr('prefix') }}"
+          molecule_net_subnet: "{{ libvirt_address | ansible.utils.ipaddr('network/prefix') | ansible.utils.ipsubnet }}"
           molecule_metallb_prefix: "{{ (molecule_net_prefix | int) + 1 }}"
-          molecule_metallb: "{{ libvirt_address | ansible.utils.ipsubnet(molecule_metallb_prefix, 1) }}"
+          molecule_metallb_subnet: "{{ molecule_net_subnet | ansible.utils.ipsubnet(molecule_metallb_prefix, 1) }}"
+          molecule_pool_prefix: "{{ (molecule_metallb_prefix | int) + 1 }}"
+          molecule_pool_private: "{{ molecule_metallb_subnet | ansible.utils.ipsubnet(molecule_pool_prefix, 0) }}"
+          molecule_pool_public: "{{ molecule_metallb_subnet | ansible.utils.ipsubnet(molecule_pool_prefix, 1) }}"
           molecule_install_dir: "{{ lookup('env', 'MOLECULE_OUTPUT_DIR', default='/tmp/logs') }}"
           molecule_install_log: "{{ molecule_install_dir }}/${MOLECULE_SCENARIO_NAME}"
-          k8s_certmanager_issuer_name: local
           # Required k8s params
           rke_cluster_name: rke.nephelaiio.io
-          rke_address_pool_private: "{{ molecule_metallb | ansible.utils.ipsubnet(molecule_mlb_prefix, 1)}}"
+          rke_address_pool_public: "{{ molecule_pool_public }}"
+          rke_address_pool_private: "{{ molecule_pool_private }}"
           rke_metallb_speaker_secret: secret
           # Optional k8s params
           rke_install_user: "{{ libvirt_user }}"
+          k8s_certmanager_issuer_name: local
           rke_k8s_opensearch_deploy: false
 verifier:
   name: ansible

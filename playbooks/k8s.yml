@@ -24,8 +24,9 @@
       ansible.builtin.debug:
         msg: "{{ _varnames | zip(_varvalues) | map('join', '=') }}"
       vars:
-        _varnames: "{{ lookup('ansible.builtin.varnames', '^_k8s_.*$', wantlist=True)  }}"
+        _varnames: "{{ lookup('ansible.builtin.varnames', '^k8s_.*$', wantlist=True)  }}"
         _varvalues: "{{ lookup('ansible.builtin.vars', *_varnames) }}"
+      run_once: true
 
     - name: Check cluster name param
       ansible.builtin.assert:
