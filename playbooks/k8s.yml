@@ -20,6 +20,14 @@
     k8s_retry_delay: "{{ _rke_retry_num }}"
     k8s_retry_num: "{{ _rke_retry_delay }}"
   tasks:
+    - name: Debug vardefs
+      ansible.builtin.debug:
+        msg: "{{ _varnames | zip(_varvalues) | map('join', '=') }}"
+      vars:
+        _varnames: "{{ lookup('ansible.builtin.varnames', '^k8s_.*$', wantlist=True)  }}"
+        _varvalues: "{{ lookup('ansible.builtin.vars', *_varnames) }}"
+      run_once: true
+
     - name: Check cluster name param
       ansible.builtin.assert:
         that: rke_cluster_name is defined

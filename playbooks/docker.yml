@@ -1,72 +1,72 @@
 ---
 - name: Install Docker
   hosts: "{{ rke_control_group }}:{{ rke_worker_group }}"
+  become: true
   vars_files:
     - main.yml
   tasks:
     - name: Disable active swap volume
       ansible.builtin.shell: swapoff -a
       tags: skip_ansible_lint
-      become: true
 
     - name: Disable swap fstab entry
       ansible.builtin.lineinfile:
         state: absent
         path: /etc/fstab
         regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
-      become: true
 
     - name: Install Docker repository
       ansible.builtin.include_role:
         name: nephelaiio.rke.docker
         tasks_from: repo
-        apply:
-          become: true
 
     - name: Install Docker Debian packages
       when: ansible_os_family == "Debian"
       block:
         - name: Query Docker releases
           ansible.builtin.shell:
-            cmd: "apt-cache madison {{ item }} | awk -F'|' '{ print $2 }' | grep {{ _release }} | uniq | sort -r | head -1 | xargs"
+            cmd: "{{ _packages }} | grep {{ _release }} | uniq | sort -r | head -1 | xargs"
             executable: "/bin/bash"
           vars:
+            _packages: "apt-cache madison {{ item }} | awk -F'|' '{ print $2 }'"
             _release: "{{ _rke_release_docker }}"
           loop: "{{ rke_docker_packages }}"
           register: _docker_versions
           changed_when: false
 
-        - name: Install Docker
-          ansible.builtin.include_role:
-            name: nephelaiio.rke.docker
-            apply:
-              become: true
+        - name: Set Docker package facts
+          ansible.builtin.set_fact:
+            docker_packages: "{{ _results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '=') }}"
           vars:
             _results: "{{ _docker_versions.results }}"
-            docker_user: "{{ rke_install_user }}"
-            docker_user_manage: true
-            docker_packages: "{{ _results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '=') }}"
 
     - name: Install Docker RedHat packages
       when: ansible_os_family == "RedHat"
       block:
         - name: Query RedHat package versions
           ansible.builtin.shell:
-            cmd: "yum list {{ item }} --showduplicates | grep '{{ _release }}' | awk '{ print $2 }' | uniq | sort -r | head -1 | xargs"
+            cmd: "{{ _packages }} | grep {{ _release }} | uniq | sort -r | head -1 | xargs"
             executable: "/bin/bash"
           vars:
+            _packages: "yum list {{ item }} --showduplicates | awk '{ print $2 }'"
             _release: "{{ _rke_release_docker }}"
           loop: "{{ rke_docker_packages }}"
           register: _docker_versions
           changed_when: false
 
-        - name: Install Docker
-          ansible.builtin.include_role:
-            name: nephelaiio.rke.docker
-            apply:
-              become: true
+        - name: Set Docker package facts
+          ansible.builtin.set_fact:
+            docker_packages: "{{ _results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '-') }}"
           vars:
             _results: "{{ _docker_versions.results }}"
-            docker_user: "{{ rke_install_user }}"
-            docker_user_manage: true
-            docker_packages: "{{ _results | map('nephelaiio.plugins.map_join', ['item', 'stdout'], '-') }}"
+
+    - name: Debug package facts
+      ansible.builtin.debug:
+        var: docker_packages
+
+    - name: Install Docker
+      ansible.builtin.include_role:
+        name: nephelaiio.rke.docker
+      vars:
+        docker_user: "{{ _rke_install_user }}"
+        docker_user_manage: true

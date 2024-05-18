@@ -3,12 +3,12 @@
   ansible.builtin.import_playbook: nephelaiio.rke.prepare
 
 
-- name: Deploy Helm
-  ansible.builtin.import_playbook: nephelaiio.rke.helm
-
-
 - name: Deploy Docker
   ansible.builtin.import_playbook: nephelaiio.rke.docker
+
+
+- name: Deploy Helm
+  ansible.builtin.import_playbook: nephelaiio.rke.helm
 
 
 - name: Configure SSH access
