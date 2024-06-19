@@ -35,11 +35,36 @@
         that: _clusterstate_stat.stat.exists
 
 
+- name: Verify tool installation
+  hosts: rke_control
+  any_errors_fatal: true
+  vars:
+    _consul_service: consul.service
+  tasks:
+
+    - name: Query service facts
+      ansible.builtin.service_facts:
+
+    - name: Check Consul service
+      ansible.builtin.assert:
+        that: _consul_service in services
+
+    - name: Check Consul service status
+      ansible.builtin.assert:
+        that:
+          - _service.state == _running
+          - _service.status == _online
+      vars:
+        _service: "{{ services[_consul_service] }}"
+        _online: "{{ (ansible_os_family == 'RedHat') | ternary('enabled', 'active') }}"
+        _running: "running"
+
+
 - name: Verify Docker install
   hosts: rke
   any_errors_fatal: true
   tasks:
-    - name: Gather service facts
+    - name: Query service facts
       ansible.builtin.service_facts:
 
     - name: Check Docker service
@@ -53,14 +78,14 @@
   hosts: rke
   any_errors_fatal: true
   vars:
-    _service_name: multipathd.service
+    _multipath_service: multipathd.service
   tasks:
-    - name: Gather service facts
+    - name: Query service facts
       ansible.builtin.service_facts:
 
     - name: Check multipath service
       ansible.builtin.assert:
-        that: _service_name in services
+        that: _multipath_service in services
 
     - name: Check multipath service status
       ansible.builtin.assert:
@@ -68,23 +93,24 @@
           - _service.state == _stopped
           - _service.status == _masked
       vars:
-        _service: "{{ services[_service_name] }}"
+        _service: "{{ services[_multipath_service }}"
         _stopped: "{{ (ansible_os_family == 'RedHat') | ternary('inactive', 'stopped') }}"
         _masked: "masked"
 
     - name: Verify multipath service mask
       block:
-        - name: Attempt mask service start
-          ansible.builtin.shell: >-
-            systemctl start {{ _service_name }}
-          register: _masked_start
+        - name: Attempt multipath service start
+          ansible.builtin.command: >-
+            systemctl start {{ _multipath_service }}
+          register: _multipath_start
           ignore_errors: true
+          become: true
 
         - name: Verify service mask
           ansible.builtin.assert:
             that:
-              - _masked_start is failed
-              - _masked_start.stderr | regex_search('.* ' + _service_name + ' is masked.')
+              - _multipath_start is failed
+              - _multipath_start.stderr | regex_search('.* ' + _multipath_service + ' is masked.')
 
 
 - name: Verify RKE install

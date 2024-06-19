@@ -43,6 +43,7 @@
     - name: Mask multipath daemon
       ansible.builtin.systemd_service:
         name: "{{ rke_multipath_daemon }}"
+        state: stopped
         enabled: false
         masked: true
       when: rke_multipath_daemon in services
