@@ -38,12 +38,14 @@ jobs:
           - k8s
           - update
         image:
-          - https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+          - jammy
         include:
           - scenario: install
-            image: https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
+            image: focal
           - scenario: install
-            image: https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud.latest.x86_64.qcow2
+            image: rocky9
+          - scenario: install
+            image: alma9
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
@@ -69,7 +71,7 @@ jobs:
         run: make requirements
 
       - name: Run molecule tests.
-        run: make test
+        run: make ${{ matrix.image }} converge side-effect verify
         env:
           MOLECULE_KVM_IMAGE: ${{ matrix.image }}
           MOLECULE_SCENARIO: ${{ matrix.scenario }}
@@ -77,9 +79,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Upload install logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: install-logs
+          name: install-${{ matrix.scenario }}-${{ matrix.image }}.log
           path: |
             /tmp/logs/*
           if-no-files-found: ignore

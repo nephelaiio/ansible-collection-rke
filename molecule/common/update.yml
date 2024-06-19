@@ -1,3 +1,5 @@
 ---
 - name: Import install playbook
   import_playbook: nephelaiio.rke.update
+  environment:
+    KUBECONFIG: '/opt/rke/kube_config_cluster.yml'
