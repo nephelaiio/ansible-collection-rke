@@ -22,6 +22,6 @@
 - name: Deploy Consul
   ansible.builtin.import_playbook: nephelaiio.consul.install
   vars:
-    consul_group_name: "{{ _rke_consul_group_name }}"
+    consul_group_name: "{{ rke_consul_group | default(rke_control | default('rke_control')) }}"
     consul_role: server
     consul_install_from_repo: true
