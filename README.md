@@ -51,6 +51,7 @@ Role is tested against the following distributions (docker images):
   * Ubuntu Jammy
   * Ubuntu Focal
   * Rocky Linux 9
+  * Alma Linux 9
 
 You can test the collection directly from sources using command `make test`
 
