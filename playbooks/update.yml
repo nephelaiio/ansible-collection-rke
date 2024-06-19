@@ -93,6 +93,16 @@
       ansible.builtin.meta: end_host
       when: _rke_hostname not in _rke_cluster_nodes
 
+    - name: Query service facts
+      ansible.builtin.service_facts:
+
+    - name: Mask multipath daemon
+      ansible.builtin.systemd_service:
+        name: "{{ rke_multipath_daemon }}"
+        enabled: false
+        masked: true
+      when: rke_multipath_daemon in services
+
     - name: Create kubeconfig tempdir
       ansible.builtin.tempfile:
         state: directory

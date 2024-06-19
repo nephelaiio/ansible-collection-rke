@@ -35,3 +35,4 @@ rke_control_group: "{{ rke_control | default('rke_control')  }}"
 rke_control_hosts: "{{ groups[rke_control_group] }}"
 rke_worker_group: "{{ rke_worker | default('rke_worker')  }}"
 rke_worker_hosts: "{{ groups[rke_worker_group] }}"
+rke_multipath_daemon: multipathd.service

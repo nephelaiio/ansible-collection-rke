@@ -22,8 +22,7 @@
     - name: Check kubeconfig file
       ansible.builtin.assert:
         fail_msg: "Unable to locate kubeconfig file at path {{ _rke_config_user }}"
-        that:
-          - _kubeconfig_stat.stat.exists
+        that: _kubeconfig_stat.stat.exists
 
     - name: Stat cluster state file
       ansible.builtin.stat:
@@ -33,8 +32,7 @@
     - name: Check cluster state file
       ansible.builtin.assert:
         fail_msg: "Unable to locate kubeconfig file at path {{ rke_state_file }}"
-        that:
-          - _clusterstate_stat.stat.exists
+        that: _clusterstate_stat.stat.exists
 
 
 - name: Verify Docker install
@@ -46,10 +44,47 @@
 
     - name: Check Docker service
       ansible.builtin.assert:
-        that:
-          - _service in services
+        that: _service in services
       vars:
         _service: docker.service
+
+
+- name: Verify multipath deactivation
+  hosts: rke
+  any_errors_fatal: true
+  vars:
+    _service_name: multipathd.service
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Check multipath service
+      ansible.builtin.assert:
+        that: _service_name in services
+
+    - name: Check multipath service status
+      ansible.builtin.assert:
+        that:
+          - _service.state == _stopped
+          - _service.status == _masked
+      vars:
+        _service: "{{ services[_service_name] }}"
+        _stopped: "{{ (ansible_os_family == 'RedHat') | ternary('inactive', 'stopped') }}"
+        _masked: "masked"
+
+    - name: Verify multipath service mask
+      block:
+        - name: Attempt mask service start
+          ansible.builtin.shell: >-
+            systemctl start {{ _service_name }}
+          register: _masked_start
+          ignore_errors: true
+
+        - name: Verify service mask
+          ansible.builtin.assert:
+            that:
+              - _masked_start is failed
+              - _masked_start.stderr | regex_search('.* ' + _service_name + ' is masked.')
 
 
 - name: Verify RKE install
@@ -108,7 +143,6 @@
 
     - name: Check cluster status
       ansible.builtin.assert:
-        that:
-          - _status | reject('equalto', 'Healthy') | length == 0
+        that: _status | reject('equalto', 'Healthy') | length == 0
       vars:
         _status: "{{ _kubectl_status.stdout }}"
