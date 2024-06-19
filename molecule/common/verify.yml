@@ -35,7 +35,7 @@
         that: _clusterstate_stat.stat.exists
 
 
-- name: Verify tool installation
+- name: Verify Consul installation
   hosts: rke_control
   any_errors_fatal: true
   vars:
@@ -56,7 +56,7 @@
           - _service.status == _online
       vars:
         _service: "{{ services[_consul_service] }}"
-        _online: "{{ (ansible_os_family == 'RedHat') | ternary('enabled', 'active') }}"
+        _online: "{{ (ansible_os_family == 'RedHat') | ternary('active', 'enabled') }}"
         _running: "running"
 
 
