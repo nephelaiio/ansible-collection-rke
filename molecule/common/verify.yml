@@ -93,7 +93,7 @@
           - _service.state == _stopped
           - _service.status == _masked
       vars:
-        _service: "{{ services[_multipath_service }}"
+        _service: "{{ services[_multipath_service] }}"
         _stopped: "{{ (ansible_os_family == 'RedHat') | ternary('inactive', 'stopped') }}"
         _masked: "masked"
 
