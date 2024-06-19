@@ -54,9 +54,10 @@
         that:
           - _service.state == _running
           - _service.status == _online
+        fail_msg: "Expected service state {{ _running }} and status {{ _online }}. Got {{ _service.state }}, {{ _service.status }}"
       vars:
         _service: "{{ services[_consul_service] }}"
-        _online: "{{ (ansible_os_family == 'RedHat') | ternary('active', 'enabled') }}"
+        _online: "enabled"
         _running: "running"
 
 
@@ -92,9 +93,10 @@
         that:
           - _service.state == _stopped
           - _service.status == _masked
+        fail_msg: "Expected service state {{ _stopped }} and status {{ _masked }}. Got {{ _service.state }}, {{ _service.status }}"
       vars:
         _service: "{{ services[_multipath_service] }}"
-        _stopped: "{{ (ansible_os_family == 'RedHat') | ternary('inactive', 'stopped') }}"
+        _stopped: "stopped"
         _masked: "masked"
 
     - name: Verify multipath service mask
@@ -111,6 +113,7 @@
             that:
               - _multipath_start is failed
               - _multipath_start.stderr | regex_search('.* ' + _multipath_service + ' is masked.')
+            fail_msg: "Got service start error {{ _multipath_start.stderr }}"
 
 
 - name: Verify RKE install
@@ -139,7 +142,12 @@
       ansible.builtin.shell:
         cmd: "kubectl get node -o name | cut -d'/' -f2"
         executable: /bin/bash
+      environment:
+        KUBECONFIG: /opt/rke/kube_config_cluster.yml
       register: _kubectl_nodes
+
+    - debug:
+        var: _kubectl_nodes
 
     - name: Verify cluster nodes
       block:

@@ -23,7 +23,7 @@
         key: "{{ rke_publickey.public_key }}"
       loop_control:
         label: "{{ item }}"
-      loop: "{{ play_hosts }}"
+      loop: "{{ groups[rke_control_group] }}"
       delegate_to: "{{ item }}"
 
     - name: Distribute SSH public keys to worker nodes
