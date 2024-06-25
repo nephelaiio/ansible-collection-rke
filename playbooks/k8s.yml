@@ -73,6 +73,9 @@
             k8s_address_pool_public_iprange: "{{ rke_address_pool_public }}"
           when: rke_address_pool_public is defined
 
+        - name: Flush handlers
+          ansible.builtin.meta: flush_handlers
+
       always:
         - name: Destroy kubeconfig tempdir
           ansible.builtin.file:
