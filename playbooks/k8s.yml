@@ -10,7 +10,7 @@
     k8s_longhorn_deploy: "{{ rke_k8s_longhorn_deploy | default(false) }}"
     k8s_nginx_deploy: "{{ rke_k8s_nginx_deploy | default(true) }}"
     k8s_opensearch_deploy: "{{ rke_k8s_opensearch_deploy | default(true) }}"
-    k8s_mysql_deploy: "{{ rke_k8s_mysql_deploy | default(true) }}"
+    k8s_mysql_deploy: "{{ rke_k8s_mysql_deploy | default(false) }}"
     k8s_olm_deploy: false
     k8s_strimzi_deploy: "{{ rke_k8s_strimzi_deploy | default(true) }}"
     k8s_zalando_deploy: "{{ rke_k8s_zalando_deploy | default(true) }}"
