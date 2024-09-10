@@ -3,7 +3,7 @@
 rke_defaults_url_api: "https://api.{{ rke_cluster_name }}"
 rke_defaults_release_rke: "v1.5.12"
 rke_defaults_release_k8s: "v1.28.12-rancher1-1"
-rke_defaults_release_docker: "26.1.4"
+rke_defaults_release_docker: "24.0.9"
 
 # Overridable values
 _rke_consul_group_name: "{{ rke_consul_group | default(rke_control_group) }}"
