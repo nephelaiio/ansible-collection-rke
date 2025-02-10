@@ -83,6 +83,7 @@ lint: install
 
 requirements: install
 	@rm -rf ${ROLE_DIR}/*
+	@poetry self add poetry-plugin-export
 	@python --version
 	@poetry run ansible-galaxy role install \
 		--force --no-deps \
