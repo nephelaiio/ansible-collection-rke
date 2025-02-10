@@ -74,6 +74,7 @@ test: lint
 install:
 	@type poetry >/dev/null || pip3 install poetry
 	@type yq || sudo apt-get install -y yq
+	@poetry self add poetry-plugin-export
 	@type nmcli || sudo apt-get install -y network-manager
 	@sudo apt-get install -y libvirt-dev
 	@poetry install --no-root
@@ -83,7 +84,6 @@ lint: install
 
 requirements: install
 	@rm -rf ${ROLE_DIR}/*
-	@poetry self add poetry-plugin-export
 	@python --version
 	@poetry run ansible-galaxy role install \
 		--force --no-deps \
