@@ -2,16 +2,16 @@
 roles:
   - name: k8s
     src: https://github.com/nephelaiio/ansible-role-k8s.git
-    version: 0.3.8
+    version: 0.4.1
   - name: k8s_repo
     src: https://github.com/nephelaiio/ansible-role-k8s_repo.git
     version: 0.0.4
   - name: docker
     src: https://github.com/nephelaiio/ansible-role-docker.git
-    version: 6.0.24
+    version: 6.1.9
   - name: helm
     src: https://github.com/geerlingguy/ansible-role-helm.git
     version: 1.0.1
   - name: update
     src: https://github.com/robertdebock/ansible-role-update.git
-    version: 3.1.7
+    version: 3.1.9
