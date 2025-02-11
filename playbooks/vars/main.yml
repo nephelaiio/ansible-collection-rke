@@ -4,6 +4,10 @@ rke_defaults_url_api: "https://api.{{ rke_cluster_name }}"
 rke_defaults_release_rke: "v1.7.2"
 rke_defaults_release_k8s: "v1.31.4-rancher1-1"
 rke_defaults_release_docker: "25.0.5"
+rke_defaults_drain_pod_selectors:
+  - "longhorn.io/component!=instance-manager"
+  - "app!=csi-attacher"
+  - "app!=csi-provisioner"
 
 # Overridable values
 _rke_consul_group_name: "{{ rke_consul_group | default(rke_control_group) }}"
@@ -20,6 +24,7 @@ _rke_backup_retention: "{{ rke_backup_retention | default(24) }}"
 _rke_evict_timeout: "{{ rke_evict_timeout | default(300) }}"
 _rke_install_user: "{{ rke_install_user | default(ansible_user_id) }}"
 _rke_install_root: "{{ rke_install_root | default('/opt/rke') }}"
+_rke_drain_pod_selectors: "{{ rke_drain_pod_selectors | default(rke_defaults_drain_pod_selectors) }}"
 
 # Hardcoded values
 rke_install_log: "{{ _rke_install_root }}/install.log"

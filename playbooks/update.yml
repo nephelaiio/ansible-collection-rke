@@ -77,7 +77,6 @@
         dest: "{{ kubeconfig_tmpdir.path }}"
         state: absent
 
-
 - name: Update OS on cluster members
   hosts: "{{ rke_worker_group }}:{{ rke_control_group }}"
   serial: 1
@@ -175,7 +174,8 @@
                   --delete-emptydir-data=true \
                   --force=true \
                   --ignore-daemonsets=true \
-                  --timeout={{ _rke_evict_timeout }}s
+                  --timeout={{ _rke_evict_timeout }}s \
+                  --pod-selector={{ _rke_drain_pod_selectors | join(',') }}
               delegate_to: "{{ _rke_play_master if _rke_play_master != _rke_hostname else _rke_play_standby }}"
 
         - name: Query cluster node status
