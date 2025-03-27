@@ -1,2 +1,8 @@
+# directories
+.venv/
+.ansible/
+.devbox/
+
+# globs
 nephelaiio-rke-*.tar.gz
 *.ymle
