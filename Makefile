@@ -12,9 +12,9 @@ ALMA_KVM_IMAGE = https://repo.almalinux.org/almalinux/${EL_RELEASE}/cloud/x86_64
 ROCKY_KVM_IMAGE = https://dl.rockylinux.org/pub/rocky/${EL_RELEASE}/images/x86_64/Rocky-${EL_RELEASE}-GenericCloud-Base.latest.x86_64.qcow2
 MOLECULE_KVM_IMAGE := $(UBUNTU_KVM_IMAGE)
 GALAXY_API_KEY ?=
-GITHUB_REPOSITORY ?= $$(git config --get remote.origin.url | cut -d: -f 2 | cut -d. -f 1)
-GITHUB_ORG = $$(echo ${GITHUB_REPOSITORY} | cut -d/ -f 1)
-GITHUB_REPO = $$(echo ${GITHUB_REPOSITORY} | cut -d/ -f 2)
+GITHUB_REPOSITORY ?= $$(git config --get remote.origin.url | cut -d':' -f 2 | cut -d. -f 1)
+GITHUB_ORG = $$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f 1)
+GITHUB_REPO = $$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f 2)
 REQUIREMENTS = requirements.yml
 ROLE_DIR = roles
 ROLE_FILE = roles.yml
@@ -72,11 +72,6 @@ test: lint
 	poetry run molecule test -s ${MOLECULE_SCENARIO}
 
 install:
-	@type poetry >/dev/null || pip3 install poetry
-	@type yq || sudo apt-get install -y yq
-	@poetry self add poetry-plugin-export
-	@type nmcli || sudo apt-get install -y network-manager
-	@sudo apt-get install -y libvirt-dev
 	@poetry install --no-root
 
 lint: install

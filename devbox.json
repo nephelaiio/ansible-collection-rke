@@ -13,6 +13,9 @@
     "yq@latest",
     "glibcLocales@latest"
   ],
+  "env": {
+    "LC_ALL": "C.UTF-8"
+  },
   "shell": {
     "init_hook": [],
     "scripts": {}
