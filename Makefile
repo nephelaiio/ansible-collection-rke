@@ -1,5 +1,12 @@
 .PHONY: all ${MAKECMDGOALS}
 
+PKGMAN = $$( \
+		(type apt-get >/dev/null 2>&1 && echo apt-get) || \
+		(type dnf >/dev/null 2>&1 && echo dnf) || \
+		(type yum >/dev/null 2>&1 && echo yum) || \
+		(type zypper >/dev/null 2>&1 && echo zypper) || \
+		echo)
+
 MOLECULE_SCENARIO ?= install
 DEBIAN_RELEASE ?= bookworm
 UBUNTU_RELEASE ?= jammy
@@ -72,6 +79,8 @@ test: lint
 	poetry run molecule test -s ${MOLECULE_SCENARIO}
 
 install:
+	@if [ -z "${PKGMAN}" ]; then echo "No package manager found" && exit 1 ; fi
+	@sudo ${PKGMAN} install -y $$(if [[ "${PKGMAN}" == "apt-get" ]]; then echo libvirt-dev; else echo libvirt-devel; fi)
 	@poetry install --no-root
 
 lint: install
