@@ -80,7 +80,7 @@ test: lint
 
 install:
 	@if [ -z "${PKGMAN}" ]; then echo "No package manager found" && exit 1 ; fi
-	@sudo ${PKGMAN} install -y $$(if [ "${PKGMAN}" -eq "apt-get" ]; then echo libvirt-dev; else echo libvirt-devel; fi)
+	@sudo ${PKGMAN} install -y $$(if [ "${PKGMAN}" = "apt-get" ]; then echo libvirt-dev; else echo libvirt-devel; fi)
 	@poetry install --no-root
 
 lint: install
