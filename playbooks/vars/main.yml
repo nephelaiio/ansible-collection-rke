@@ -25,6 +25,7 @@ _rke_evict_timeout: "{{ rke_evict_timeout | default(300) }}"
 _rke_install_user: "{{ rke_install_user | default(ansible_user_id) }}"
 _rke_install_root: "{{ rke_install_root | default('/opt/rke') }}"
 _rke_drain_pod_selectors: "{{ rke_drain_pod_selectors | default(rke_defaults_drain_pod_selectors) }}"
+_rke_limits_nofie: 1048576
 
 # Hardcoded values
 rke_install_log: "{{ _rke_install_root }}/install.log"

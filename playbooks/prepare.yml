@@ -9,7 +9,6 @@
       ansible.builtin.package:
         name: rsync
 
-
 - name: Prepare RKE cluster members
   hosts: "{{ rke_control_group }}:{{ rke_worker_group }}"
   become: true
@@ -47,3 +46,10 @@
         enabled: false
         masked: true
       when: rke_multipath_daemon in services
+
+    - name: Set nofile limit
+      community.general.pam_limits:
+        domain: "*"
+        limit_type: "-"
+        limit_item: nofile
+        value: "{{ _rke_limits_nofile }}"
