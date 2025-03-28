@@ -18,4 +18,6 @@ repository: http://github.com/nephelaiio/ansible-collection-rke
 documentation: http://github.com/nephelaiio/ansible-collection-rke
 homepage: http://github.com/nephelaiio/ansible-collection-rke
 issues: http://github.com/nephelaiio/ansible-collection-rke/issues
-build_ignore: []
+build_ignore:
+  - .devbox
+  - .venv
