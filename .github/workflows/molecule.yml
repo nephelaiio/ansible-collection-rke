@@ -36,7 +36,7 @@ jobs:
         uses: jetify-com/devbox-install-action@v0.12.0
 
       - name: Install test requirements
-        run: devbox run -- make install
+        run: devbox run -- make requirements
 
       - name: Debug test environment
         run: devbox run -- make debug
