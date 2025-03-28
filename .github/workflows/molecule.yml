@@ -8,6 +8,16 @@ on:
   pull_request:
     branches:
       - master
+    paths:
+      - "molecule/**"
+      - "playbooks/**"
+      - "requirements.yml"
+      - "roles.yml"
+      - "Makefile"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - "devbox.json"
+      - "devbox.lock"
 
 jobs:
   molecule:

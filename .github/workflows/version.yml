@@ -5,6 +5,10 @@ on:
   pull_request:
     branches:
       - master
+    paths:
+      - "playbooks/**"
+      - "requirements.yml"
+      - "roles.yml"
 
 jobs:
   version:
