@@ -1,5 +1,12 @@
 .PHONY: all ${MAKECMDGOALS}
 
+PKGMAN = $$( \
+		(type apt-get >/dev/null 2>&1 && echo apt-get) || \
+		(type dnf >/dev/null 2>&1 && echo dnf) || \
+		(type yum >/dev/null 2>&1 && echo yum) || \
+		(type zypper >/dev/null 2>&1 && echo zypper) || \
+		echo)
+
 MOLECULE_SCENARIO ?= install
 DEBIAN_RELEASE ?= bookworm
 UBUNTU_RELEASE ?= jammy
@@ -12,9 +19,9 @@ ALMA_KVM_IMAGE = https://repo.almalinux.org/almalinux/${EL_RELEASE}/cloud/x86_64
 ROCKY_KVM_IMAGE = https://dl.rockylinux.org/pub/rocky/${EL_RELEASE}/images/x86_64/Rocky-${EL_RELEASE}-GenericCloud-Base.latest.x86_64.qcow2
 MOLECULE_KVM_IMAGE := $(UBUNTU_KVM_IMAGE)
 GALAXY_API_KEY ?=
-GITHUB_REPOSITORY ?= $$(git config --get remote.origin.url | cut -d: -f 2 | cut -d. -f 1)
-GITHUB_ORG = $$(echo ${GITHUB_REPOSITORY} | cut -d/ -f 1)
-GITHUB_REPO = $$(echo ${GITHUB_REPOSITORY} | cut -d/ -f 2)
+GITHUB_REPOSITORY ?= $$(git config --get remote.origin.url | cut -d':' -f 2 | cut -d. -f 1)
+GITHUB_ORG = $$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f 1)
+GITHUB_REPO = $$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f 2)
 REQUIREMENTS = requirements.yml
 ROLE_DIR = roles
 ROLE_FILE = roles.yml
@@ -72,11 +79,8 @@ test: lint
 	poetry run molecule test -s ${MOLECULE_SCENARIO}
 
 install:
-	@type poetry >/dev/null || pip3 install poetry
-	@type yq || sudo apt-get install -y yq
-	@poetry self add poetry-plugin-export
-	@type nmcli || sudo apt-get install -y network-manager
-	@sudo apt-get install -y libvirt-dev
+	@if [ -z "${PKGMAN}" ]; then echo "No package manager found" && exit 1 ; fi
+	@sudo ${PKGMAN} install -y $$(if [ "${PKGMAN}" = "apt-get" ]; then echo libvirt-dev; else echo libvirt-devel; fi)
 	@poetry install --no-root
 
 lint: install
@@ -123,4 +127,4 @@ version:
 	@poetry run molecule --version
 
 debug: version
-	@poetry export --dev --without-hashes
+	@poetry export --dev --without-hashes || exit 0
