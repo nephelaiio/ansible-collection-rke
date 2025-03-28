@@ -13,10 +13,12 @@ on:
       - "playbooks/**"
       - "requirements.yml"
       - "roles.yml"
+      - "Makefile"
       - "pyproject.toml"
       - "poetry.lock"
       - "devbox.json"
       - "devbox.lock"
+      - .github/workflows/molecule.yml
 
 jobs:
   molecule:
