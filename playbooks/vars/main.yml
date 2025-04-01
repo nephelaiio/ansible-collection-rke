@@ -1,8 +1,8 @@
 ---
 # Defaults
 rke_defaults_url_api: "https://api.{{ rke_cluster_name }}"
-rke_defaults_release_rke: "v1.7.2"
-rke_defaults_release_k8s: "v1.31.4-rancher1-1"
+rke_defaults_release_rke: "v1.7.5"
+rke_defaults_release_k8s: "v1.31.7-rancher1-1"
 rke_defaults_release_docker: "25.0.5"
 rke_defaults_drain_pod_selectors:
   - "longhorn.io/component!=instance-manager"
