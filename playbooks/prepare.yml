@@ -47,7 +47,14 @@
         masked: true
       when: rke_multipath_daemon in services
 
-    - name: Set nofile limit
+    - name: Set root nofile limit
+      community.general.pam_limits:
+        domain: root
+        limit_type: "-"
+        limit_item: nofile
+        value: "{{ _rke_limits_nofile }}"
+
+    - name: Set user nofile limit
       community.general.pam_limits:
         domain: "*"
         limit_type: "-"
