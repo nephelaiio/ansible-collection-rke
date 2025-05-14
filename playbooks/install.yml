@@ -2,22 +2,17 @@
 - name: Prepare cluster nodes
   ansible.builtin.import_playbook: nephelaiio.rke.prepare
 
-
 - name: Deploy Docker
   ansible.builtin.import_playbook: nephelaiio.rke.docker
-
 
 - name: Deploy Helm
   ansible.builtin.import_playbook: nephelaiio.rke.helm
 
-
 - name: Configure SSH access
   ansible.builtin.import_playbook: nephelaiio.rke.ssh
 
-
 - name: Deploy RKE cluster
   ansible.builtin.import_playbook: nephelaiio.rke.rke
-
 
 - name: Deploy Consul
   ansible.builtin.import_playbook: nephelaiio.consul.install
@@ -25,3 +20,7 @@
     consul_group_name: "{{ rke_consul_group | default(rke_control | default('rke_control')) }}"
     consul_role: server
     consul_install_from_repo: true
+
+- name: Deploy Harbor
+  ansible.builtin.import_playbook: nephelaiio.rke.harbor
+  when: rke_harbor_deploy | default(false) and rke_harbor_hostname is defined

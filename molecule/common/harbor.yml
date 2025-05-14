@@ -1,0 +1,3 @@
+---
+- name: Import harbor playbook
+  import_playbook: nephelaiio.rke.harbor

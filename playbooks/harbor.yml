@@ -1,0 +1,430 @@
+---
+- name: Deploy Harbor Helm chart
+  hosts: "{{ rke_control_group }}"
+  vars_files:
+    - main.yml
+  vars:
+    rke_harbor_namespace: "harbor"
+    rke_harbor_chart_name: "harbor"
+    rke_harbor_chart_repo: "https://helm.goharbor.io"
+    rke_harbor_wait_timeout: 600
+    rke_harbor_tls_cert: "harbor-tls-cert"
+    rke_harbor_tls_secret: "harbor-tls-secret"
+    rke_harbor_admin_secret: "harbor-admin-secret"
+    harbor_proxy_project_name: "docker-hub-proxy"
+    harbor_proxy_upstream_registry: "https://registry-1.docker.io"
+    harbor_proxy_upstream_name: "docker-hub"
+    harbor_proxy_retries: 10
+    harbor_proxy_wait_time: 30
+  tasks:
+    - name: Set environment facts
+      ansible.builtin.set_fact:
+        harbor_proxy_cache_enabled: "{{ rke_harbor_proxy_cache_enabled | default(true) }}"
+
+    - name: End play if Harbor deployment is disabled
+      ansible.builtin.meta: end_play
+      when: not harbor_proxy_cache_enabled
+
+    - name: Validate required params
+      ansible.builtin.assert:
+        that: rke_harbor_hostname is defined
+
+    - name: Slurp kubeconfig file
+      ansible.builtin.slurp:
+        src: "{{ _rke_config_user }}"
+      register: _kubeconfig_slurp
+
+    - name: Deploy k8s components
+      run_once: true
+      delegate_to: localhost
+      block:
+        - name: Create kubeconfig tempdir
+          ansible.builtin.tempfile:
+            state: directory
+            prefix: kubeconfig
+          register: kubeconfig_tmpdir
+          changed_when: false
+
+        - name: Set kubeconfig facts
+          ansible.builtin.set_fact:
+            k8s_kubeconfig: "{{ kubeconfig_tmpdir.path }}/config"
+
+        - name: Create local kubeconfig
+          ansible.builtin.copy:
+            dest: "{{ k8s_kubeconfig }}"
+            content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
+            mode: 0600
+          changed_when: false
+
+        - name: Create Harbor namespace
+          kubernetes.core.k8s:
+            name: "{{ rke_harbor_namespace }}"
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            state: present
+            resource_definition:
+              apiVersion: v1
+              kind: Namespace
+              metadata:
+                name: "{{ rke_harbor_namespace }}"
+
+        - name: Query Harbor admin secret
+          kubernetes.core.k8s_info:
+            namespace: "{{ rke_harbor_namespace }}"
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            kind: Secret
+            name: "{{ rke_harbor_admin_secret }}"
+          register: harbor_admin_secret
+
+        - name: Set Harbor admin password
+          ansible.builtin.set_fact:
+            harbor_admin_user: "admin"
+            harbor_admin_password: "{{ _admin_password }}"
+            harbor_admin_auth: "Basic {{ _admin_auth | b64encode }}"
+          vars:
+            _secret_resources: "{{ harbor_admin_secret.resources }}"
+            _admin_user: admin
+            _admin_newpass: "{{ lookup('password', '/dev/null', chars=['ascii_letters', 'digits']) }}"
+            _admin_genpass: "{{ harbor_admin_secret.resources | length == 0 }}"
+            _admin_password: "{{ _admin_newpass if _admin_genpass else _secret_resources[0].data.password | b64decode }}"
+            _admin_auth: "{{ _admin_user }}:{{ _admin_password }}"
+
+        - name: Create Harbor admin secret
+          kubernetes.core.k8s:
+            namespace: "{{ rke_harbor_namespace }}"
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            state: present
+            resource_definition:
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: "{{ rke_harbor_admin_secret }}"
+              type: Opaque
+              data:
+                password: "{{ harbor_admin_password | b64encode }}"
+
+        - name: Query cert-manager cluster issuer
+          kubernetes.core.k8s_info:
+            namespace: "{{ rke_harbor_namespace }}"
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            kind: ClusterIssuer
+            name: "{{ k8s_certmanager_issuer_name }}"
+
+        - name: Query cert-manager cluster issuer
+          kubernetes.core.k8s_info:
+            namespace: "{{ rke_harbor_namespace }}"
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            kind: ClusterIssuer
+            name: "{{ k8s_certmanager_issuer_name }}"
+
+        - name: Create Harbor TLS certificate
+          kubernetes.core.k8s:
+            namespace: "{{ rke_harbor_namespace }}"
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            state: present
+            resource_definition:
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              metadata:
+                name: "{{ rke_harbor_tls_cert }}"
+              spec:
+                commonName: "{{ rke_harbor_hostname }}"
+                dnsNames:
+                  - "{{ rke_harbor_hostname }}"
+                secretName: "{{ rke_harbor_tls_secret }}"
+                privateKey:
+                  algorithm: ECDSA
+                  size: 256
+                issuerRef:
+                  name: "{{ k8s_certmanager_issuer_name }}"
+                  kind: ClusterIssuer
+
+        - name: Query Harbor TLS certificate secret
+          kubernetes.core.k8s_info:
+            namespace: "{{ rke_harbor_namespace }}"
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            kind: Secret
+            name: "{{ rke_harbor_tls_secret }}"
+          register: harbor_tls_secret
+
+        - name: Set Harbor TLS certificate facts
+          ansible.builtin.set_fact:
+            harbor_tls_cacert: "{{ harbor_tls_secret.resources[0].data['ca.crt'] | b64decode }}"
+
+        - name: Deploy Harbor Helm chart
+          kubernetes.core.helm:
+            name: harbor
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            chart_ref: "{{ rke_harbor_chart_name }}"
+            chart_repo_url: "{{ rke_harbor_chart_repo }}"
+            release_namespace: "{{ rke_harbor_namespace }}"
+            create_namespace: false
+            state: present
+            wait: true
+            wait_timeout: "{{ rke_harbor_wait_timeout }}s"
+            binary_path: "{{ rke_k8s_helm_bin }}"
+            values:
+              existingSecretAdminPassword: "{{ rke_harbor_admin_secret }}"
+              existingSecretAdminPasswordKey: password
+              expose:
+                type: ingress
+                tls:
+                  enabled: true
+                  certSource: secret
+                  secret:
+                    secretName: "{{ rke_harbor_tls_secret }}"
+                ingress:
+                  className: nginx-private
+                  hosts:
+                    core: "{{ rke_harbor_hostname }}"
+
+        - name: Query Harbor ingress
+          kubernetes.core.k8s_info:
+            namespace: "{{ rke_harbor_namespace }}"
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            kind: Ingress
+            name: harbor-ingress
+          register: harbor_ingress
+
+        - name: Set Harbor ingress facts
+          ansible.builtin.set_fact:
+            harbor_ingress_host: "{{ harbor_ingress.resources[0].spec.tls[0].hosts[0] }}"
+            harbor_ingress_address: "{{ harbor_ingress.resources[0].status.loadBalancer.ingress[0].ip }}"
+
+        - name: Persist Harbor ingress facts
+          ansible.builtin.set_fact:
+            harbor_ingress:
+              host: "{{ harbor_ingress_host }}"
+              address: "{{ harbor_ingress_address }}"
+              auth: "{{ harbor_admin_auth }}"
+              proxy: "https://{{ harbor_ingress_host }}/{{ harbor_proxy_project_name }}"
+              cacert: "{{ harbor_tls_cacert }}"
+          delegate_to: localhost
+          delegate_facts: true
+
+      always:
+        - name: Remove kubeconfig tempdir
+          ansible.builtin.file:
+            dest: "{{ kubeconfig_tmpdir }}"
+            state: absent
+          changed_when: false
+
+    - name: Configure Harbor hosts file entry
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        state: present
+        regexp: "^{{ harbor_ingress_address }}\\s+"
+        line: "{{ harbor_ingress_address }} {{ harbor_ingress_host }}"
+      become: true
+
+    - name: Configure Harbor pull through cache
+      run_once: true
+      block:
+        - name: Wait for Harbor API to be ready
+          ansible.builtin.uri:
+            url: "https://{{ harbor_ingress_host }}/api/v2.0/health"
+            method: GET
+            status_code: 200
+            validate_certs: false
+          register: health_result
+          until: health_result.status == 200
+          retries: 30
+          delay: 10
+
+        - name: Create registry endpoint for Docker Hub
+          ansible.builtin.uri:
+            url: "https://{{ harbor_ingress_host }}/api/v2.0/registries"
+            method: POST
+            body_format: json
+            body:
+              name: "{{ harbor_proxy_upstream_name }}"
+              url: "{{ harbor_proxy_upstream_registry }}"
+              type: "docker-hub"
+              insecure: false
+              description: "Docker Hub proxy endpoint"
+            status_code: [201, 409] # 409 = already exists
+            validate_certs: false
+            headers:
+              Authorization: "{{ harbor_admin_auth }}"
+          register: registry_endpoint_result
+
+        - name: Get registry ID
+          ansible.builtin.uri:
+            url: "https://{{ harbor_ingress_host }}/api/v2.0/registries"
+            method: GET
+            status_code: 200
+            validate_certs: false
+            headers:
+              Authorization: "{{ harbor_admin_auth }}"
+          register: registries_response
+
+        - name: Find registry
+          ansible.builtin.set_fact:
+            registry_data: "{{ registries_response.json | selectattr('name', 'equalto', harbor_proxy_upstream_name) | list }}"
+
+        - name: Verify registry data
+          ansible.builtin.assert:
+            that: registry_data | length == 1
+
+        - name: Set registry ID
+          ansible.builtin.set_fact:
+            registry_id: "{{ registry_data[0].id }}"
+
+        - debug:
+            var: registry_id
+
+        - name: Create a proxy cache project
+          ansible.builtin.uri:
+            url: "https://{{ harbor_ingress_host }}/api/v2.0/projects"
+            method: POST
+            body_format: json
+            body: "{{ {
+              'project_name': harbor_proxy_project_name,
+              'registry_id': registry_id | int,
+              'storage_limit': -1,
+              'metadata': { 'public': 'true', 'proxy_speed': -1 },
+              } }}"
+            status_code: [201, 409] # 409 = already exists
+            validate_certs: false
+            headers:
+              Authorization: "{{ harbor_admin_auth }}"
+          register: project_result
+
+        - name: Verify proxy cache project configuration
+          ansible.builtin.uri:
+            url: "https://{{ harbor_ingress_host }}/api/v2.0/projects/{{ harbor_proxy_project_name }}"
+            method: GET
+            status_code: 200
+            validate_certs: false
+            headers:
+              Authorization: "{{ harbor_admin_auth }}"
+          register: project_verify_result
+
+        - name: Display project verification result
+          ansible.builtin.debug:
+            var: project_verify_result.json
+
+- name: Manage Harbor hosts entry
+  hosts: "{{ rke_worker_group }}"
+  vars_files:
+    - main.yml
+  tasks:
+    - name: Set environment facts
+      ansible.builtin.set_fact:
+        harbor_proxy_cache_enabled: "{{ rke_harbor_proxy_cache_enabled | default(true) }}"
+
+    - name: End play if Harbor deployment is disabled
+      ansible.builtin.meta: end_play
+      when: not harbor_proxy_cache_enabled
+
+    - name: Set Harbor ingress facts
+      ansible.builtin.set_fact:
+        harbor_ingress_host: "{{ hostvars['localhost'].harbor_ingress.host }}"
+        harbor_ingress_address: "{{ hostvars['localhost'].harbor_ingress.address }}"
+
+    - name: Configure Harbor hosts file entry
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        state: present
+        regexp: "^{{ harbor_ingress_address }}\\s+"
+        line: "{{ harbor_ingress_address }} {{ harbor_ingress_host }}"
+      become: true
+
+- name: Configure Docker daemon to use Harbor proxy cache
+  hosts: "{{ rke_control_group }}:{{ rke_worker_group }}"
+  vars_files:
+    - main.yml
+  vars:
+    docker_daemon_config_path: "/etc/docker/daemon.json"
+    docker_service_name: "docker.service"
+  tasks:
+    - name: Set environment facts
+      ansible.builtin.set_fact:
+        harbor_proxy_cache_enabled: "{{ rke_harbor_proxy_cache_enabled | default(true) }}"
+
+    - name: End play if Harbor deployment is disabled
+      ansible.builtin.meta: end_play
+      when: not harbor_proxy_cache_enabled
+
+    - name: Set Harbor ingress facts
+      ansible.builtin.set_fact:
+        harbor_ingress_host: "{{ hostvars['localhost'].harbor_ingress.host }}"
+        harbor_ingress_cacert: "{{ hostvars['localhost'].harbor_ingress.cacert }}"
+        harbor_proxy_url: "{{ hostvars['localhost'].harbor_ingress.proxy }}"
+
+    - name: Check if daemon.json exists
+      ansible.builtin.stat:
+        path: "{{ docker_daemon_config_path }}"
+      register: docker_daemon_stat
+      become: true
+
+    - name: Read existing daemon.json if it exists
+      ansible.builtin.slurp:
+        src: "{{ docker_daemon_config_path }}"
+      register: docker_daemon_content
+      become: true
+      when: docker_daemon_stat.stat.exists
+
+    - name: Parse existing daemon.json or create empty config
+      ansible.builtin.set_fact:
+        docker_daemon_config: "{{ (docker_daemon_content.content | b64decode | from_json) if docker_daemon_stat.stat.exists else {} }}"
+
+    - name: Update Docker daemon configuration with registry mirror
+      ansible.builtin.set_fact:
+        docker_daemon_config: "{{ docker_daemon_config | combine(docker_config_override) }}"
+      vars:
+        docker_config_override:
+          registry-mirrors:
+            - "{{ harbor_proxy_url }}"
+          insecure_registries:
+            - "{{ harbor_ingress_host }}"
+
+    - name: Ensure /etc/docker directory exists
+      ansible.builtin.file:
+        path: /etc/docker
+        state: directory
+        mode: "0755"
+      become: true
+
+    - name: Write updated Docker daemon configuration
+      ansible.builtin.copy:
+        content: "{{ docker_daemon_config | to_nice_json }}"
+        dest: "{{ docker_daemon_config_path }}"
+        mode: "0644"
+      become: true
+
+    - name: Create cert directory for Harbor
+      ansible.builtin.file:
+        path: /etc/docker/certs.d/{{ harbor_ingress_host }}
+        state: directory
+        mode: "0755"
+      become: true
+
+    - name: Install Harbor CA certificate
+      ansible.builtin.copy:
+        content: "{{ harbor_ingress_cacert }}"
+        dest: /etc/docker/certs.d/{{ harbor_ingress_host }}/ca.crt
+        mode: "0644"
+      become: true
+
+    - name: Reload Docker configuration
+      ansible.builtin.systemd:
+        name: "{{ docker_service_name }}"
+        state: reloaded
+      become: true
+
+    - name: Verify Docker can pull from Harbor proxy
+      ansible.builtin.command: "docker pull hello-world:latest"
+      become: true
+      register: test_pull
+      changed_when: false
+      ignore_errors: true
+
+    - name: Display test pull result
+      ansible.builtin.debug:
+        var: test_pull.stdout_lines
+      when: test_pull is not failed
+
+    - name: Display pull error if any
+      ansible.builtin.debug:
+        var: test_pull.stderr_lines
+      when: test_pull is failed
