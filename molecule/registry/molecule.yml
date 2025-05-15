@@ -42,7 +42,7 @@ provisioner:
   playbooks:
     create: ../common/create.yml
     prepare: ../common/prepare.yml
-    side_effect: ../common/harbor.yml
+    side_effect: ../common/registry.yml
     verify: ../common/verify.yml
     cleanup: ../common/cleanup.yml
     destroy: ../common/destroy.yml
@@ -72,7 +72,6 @@ provisioner:
           rke_address_pool_private: "{{ molecule_pool_private }}"
           rke_metallb_speaker_secret: secret
           rke_install_user: "{{ libvirt_user }}"
-          rke_harbor_hostname: "harbor.{{ rke_cluster_name }}"
           rke_k8s_opensearch_deploy: false
           rke_k8s_strimzi_deploy: false
           rke_k8s_argocd_deploy: false

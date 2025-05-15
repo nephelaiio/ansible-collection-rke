@@ -21,6 +21,6 @@
     consul_role: server
     consul_install_from_repo: true
 
-- name: Deploy Harbor
-  ansible.builtin.import_playbook: nephelaiio.rke.harbor
-  when: rke_harbor_deploy | default(false) and rke_harbor_hostname is defined
+- name: Deploy docker registry
+  ansible.builtin.import_playbook: nephelaiio.rke.registry
+  when: rke_registry_deploy | default(false)
