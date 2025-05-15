@@ -90,7 +90,7 @@
 
     - name: End play if proxy configuration is disabled
       ansible.builtin.meta: end_play
-      when: not _rke_registry_deploy and not rke_docker_proxy
+      when: not _rke_registry_deploy rke_docker_proxy is not defined
 
     - name: Verify configuration parameters
       ansible.builtin.assert:
