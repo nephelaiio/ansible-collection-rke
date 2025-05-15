@@ -7,7 +7,7 @@
 
 - name: Configure docker exetrnal proxy
   ansible.builtin.import_playbook: nephelaiio.rke.proxy
-  when: not (rke_registry_deploy | default(false) | bool) and (rke_docker_proxy is defined))
+  when: not (rke_registry_deploy | default(false) | bool) and (rke_docker_proxy is defined)
 
 - name: Deploy Helm
   ansible.builtin.import_playbook: nephelaiio.rke.helm
