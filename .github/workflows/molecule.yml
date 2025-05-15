@@ -32,10 +32,8 @@ jobs:
           - update
           - registry
         image:
-          - noble
+          - jammy
         include:
-          - scenario: install
-            image: jammy
           - scenario: install
             image: focal
           - scenario: install

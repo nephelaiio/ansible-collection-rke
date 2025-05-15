@@ -5,6 +5,10 @@
 - name: Deploy Docker
   ansible.builtin.import_playbook: nephelaiio.rke.docker
 
+- name: Configure docker exetrnal proxy
+  ansible.builtin.import_playbook: nephelaiio.rke.proxy
+  when: not (rke_registry_deploy | default(false) | bool) and (rke_docker_proxy is defined))
+
 - name: Deploy Helm
   ansible.builtin.import_playbook: nephelaiio.rke.helm
 
@@ -14,13 +18,17 @@
 - name: Deploy RKE cluster
   ansible.builtin.import_playbook: nephelaiio.rke.rke
 
+- name: Deploy docker registry
+  ansible.builtin.import_playbook: nephelaiio.rke.registry
+  when: rke_registry_deploy | default(false)
+
+- name: Configure docker registry proxy
+  ansible.builtin.import_playbook: nephelaiio.rke.proxy
+  when: rke_registry_deploy | default(false)
+
 - name: Deploy Consul
   ansible.builtin.import_playbook: nephelaiio.consul.install
   vars:
     consul_group_name: "{{ rke_consul_group | default(rke_control | default('rke_control')) }}"
     consul_role: server
     consul_install_from_repo: true
-
-- name: Deploy docker registry
-  ansible.builtin.import_playbook: nephelaiio.rke.registry
-  when: rke_registry_deploy | default(false)

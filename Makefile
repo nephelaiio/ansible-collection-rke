@@ -7,6 +7,7 @@ PKGMAN = $$( \
 		(type zypper >/dev/null 2>&1 && echo zypper) || \
 		echo)
 
+# This Makefile is used to manage the development and testing of Ansible roles
 MOLECULE_SCENARIO ?= install
 DEBIAN_RELEASE ?= bookworm
 UBUNTU_RELEASE ?= jammy
