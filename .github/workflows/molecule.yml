@@ -30,6 +30,7 @@ jobs:
           - install
           - k8s
           - update
+          - registry
         image:
           - jammy
         include:

@@ -42,10 +42,10 @@ provisioner:
   playbooks:
     create: ../common/create.yml
     prepare: ../common/prepare.yml
-    converge: ../common/install.yml
+    side_effect: ../common/registry.yml
+    verify: ../common/verify.yml
     cleanup: ../common/cleanup.yml
     destroy: ../common/destroy.yml
-    verify: ../common/verify.yml
   config_options:
     defaults:
       callbacks_enabled: ansible.posix.profile_tasks
@@ -54,21 +54,37 @@ provisioner:
     hosts:
       all:
         vars:
-          ansible_ssh_extra_args: "-o ControlPersist=no -o ControlPath=none"
-          libvirt_user: molecule
           libvirt_address: "172.31.252.1/24"
+          libvirt_user: molecule
           libvirt_platforms: "{{ molecule_yml.platforms }}"
           molecule_net_prefix: "{{ libvirt_address | ansible.utils.ipaddr('prefix') }}"
+          molecule_net_subnet: "{{ libvirt_address | ansible.utils.ipaddr('network/prefix') | ansible.utils.ipsubnet }}"
           molecule_metallb_prefix: "{{ (molecule_net_prefix | int) + 1 }}"
-          molecule_metallb: "{{ libvirt_address | ansible.utils.ipsubnet(molecule_metallb_prefix, 1) }}"
+          molecule_metallb_subnet: "{{ molecule_net_subnet | ansible.utils.ipsubnet(molecule_metallb_prefix, 1) }}"
+          molecule_pool_prefix: "{{ (molecule_metallb_prefix | int) + 1 }}"
+          molecule_pool_private: "{{ molecule_metallb_subnet | ansible.utils.ipsubnet(molecule_pool_prefix, 0) }}"
+          molecule_pool_public: "{{ molecule_metallb_subnet | ansible.utils.ipsubnet(molecule_pool_prefix, 1) }}"
           molecule_install_dir: "{{ lookup('env', 'MOLECULE_OUTPUT_DIR', default='/tmp/logs') }}"
           molecule_install_log: "{{ molecule_install_dir }}/${MOLECULE_SCENARIO_NAME}"
-          # Required k8s params
+          # Required rke params
           rke_cluster_name: rke.nephelaiio.io
+          rke_address_pool_public: "{{ molecule_pool_public }}"
+          rke_address_pool_private: "{{ molecule_pool_private }}"
           rke_metallb_speaker_secret: secret
-          # Optional k8s params
-          rke_api_url: "https://api.{{ rke_cluster_name }}:6443"
           rke_install_user: "{{ libvirt_user }}"
+          rke_k8s_opensearch_deploy: false
+          rke_k8s_strimzi_deploy: false
+          rke_k8s_argocd_deploy: false
+          rke_k8s_longhorn_deploy: true
+          rke_k8s_zalando_deploy: false
+          rke_k8s_mysql_deploy: false
+          rke_k8s_nginx_deploy: true
+
+          # k8s parameter overrides
+          k8s_certmanager_issuer_name: local
+          k8s_longhorn_chart_values:
+            persistence:
+              defaultClass: true
 verifier:
   name: ansible
 scenario:
@@ -85,5 +101,6 @@ scenario:
     - create
     - prepare
     - converge
+    - side_effect
     - verify
     - cleanup

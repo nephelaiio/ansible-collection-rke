@@ -1,0 +1,77 @@
+---
+- name: Deploy Registry Helm chart
+  hosts: "{{ rke_control_group }}"
+  vars_files:
+    - main.yml
+  vars:
+    rke_registry_namespace: "docker-registry"
+    rke_registry_size: "10Gi"
+    rke_registry_chart_name: "docker-registry"
+    rke_registry_chart_repo: "https://helm.twun.io"
+    rke_registry_chart_timeout: 600
+    rke_registry_proxy_retries: 10
+    rke_registry_proxy_wait_time: 60
+  tasks:
+    - name: Set environment facts
+      ansible.builtin.set_fact:
+        _rke_registry_deploy: "{{ rke_registry_deploy | default(false) }}"
+
+    - name: End play if registry deployment is disabled
+      ansible.builtin.meta: end_play
+      when: not _rke_registry_deploy
+
+    - name: Slurp kubeconfig file
+      ansible.builtin.slurp:
+        src: "{{ _rke_config_user }}"
+      register: _kubeconfig_slurp
+
+    - name: Deploy k8s components
+      run_once: true
+      delegate_to: localhost
+      block:
+        - name: Create kubeconfig tempdir
+          ansible.builtin.tempfile:
+            state: directory
+            prefix: kubeconfig
+          register: kubeconfig_tmpdir
+          changed_when: false
+
+        - name: Set kubeconfig facts
+          ansible.builtin.set_fact:
+            k8s_kubeconfig: "{{ kubeconfig_tmpdir.path }}/config"
+
+        - name: Create local kubeconfig
+          ansible.builtin.copy:
+            dest: "{{ k8s_kubeconfig }}"
+            content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
+            mode: 0600
+          changed_when: false
+
+        - name: Deploy Registry Helm chart
+          kubernetes.core.helm:
+            name: "{{ rke_registry_chart_name }}"
+            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+            chart_ref: "{{ rke_registry_chart_name }}"
+            chart_repo_url: "{{ rke_registry_chart_repo }}"
+            release_namespace: "{{ rke_registry_namespace }}"
+            create_namespace: true
+            state: present
+            wait: true
+            wait_timeout: "{{ rke_registry_chart_timeout }}s"
+            binary_path: "{{ rke_k8s_helm_bin }}"
+            values:
+              persistence:
+                enabled: true
+                size: "{{ rke_registry_size }}"
+              service:
+                type: NodePort
+                nodePort: "{{ _rke_registry_port }}"
+              proxy:
+                enabled: true
+
+      always:
+        - name: Remove kubeconfig tempdir
+          ansible.builtin.file:
+            dest: "{{ kubeconfig_tmpdir }}"
+            state: absent
+          changed_when: false

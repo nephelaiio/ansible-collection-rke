@@ -64,7 +64,6 @@
       ansible.builtin.group_by:
         key: "_rke_{{ 'installed' if (check_rkestate.stat.exists | bool) else 'uninstalled' }}"
 
-
 - name: Deploy RKE cluster
   hosts: "{{ _targets }}"
   run_once: true
@@ -126,7 +125,6 @@
       delegate_to: localhost
       delegate_facts: true
 
-
 - name: Distribute cluster files to control nodes
   hosts: "{{ rke_control_group }}"
   vars_files:
@@ -143,7 +141,7 @@
         _base_server: "{{ _base_config.clusters[0].cluster.server }}"
         _base_override:
           cluster:
-            server: 'https://localhost:6443'
+            server: "https://localhost:6443"
         _base_cluster:
           clusters:
             - "{{ _base_config['clusters'][0] | ansible.builtin.combine(_base_override, recursive=true) }}"

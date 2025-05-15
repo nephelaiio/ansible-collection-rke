@@ -1,0 +1,6 @@
+---
+- name: Import install playbook
+  import_playbook: nephelaiio.rke.install
+
+- name: Import k8s playbook
+  import_playbook: nephelaiio.rke.k8s

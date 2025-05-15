@@ -2,22 +2,29 @@
 - name: Prepare cluster nodes
   ansible.builtin.import_playbook: nephelaiio.rke.prepare
 
-
 - name: Deploy Docker
   ansible.builtin.import_playbook: nephelaiio.rke.docker
 
+- name: Configure docker exetrnal proxy
+  ansible.builtin.import_playbook: nephelaiio.rke.proxy
+  when: not (rke_registry_deploy | default(false) | bool) and (rke_docker_proxy is defined)
 
 - name: Deploy Helm
   ansible.builtin.import_playbook: nephelaiio.rke.helm
 
-
 - name: Configure SSH access
   ansible.builtin.import_playbook: nephelaiio.rke.ssh
-
 
 - name: Deploy RKE cluster
   ansible.builtin.import_playbook: nephelaiio.rke.rke
 
+- name: Deploy docker registry
+  ansible.builtin.import_playbook: nephelaiio.rke.registry
+  when: rke_registry_deploy | default(false)
+
+- name: Configure docker registry proxy
+  ansible.builtin.import_playbook: nephelaiio.rke.proxy
+  when: rke_registry_deploy | default(false)
 
 - name: Deploy Consul
   ansible.builtin.import_playbook: nephelaiio.consul.install
