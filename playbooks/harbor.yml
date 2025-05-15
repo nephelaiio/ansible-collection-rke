@@ -15,7 +15,7 @@
     harbor_proxy_upstream_registry: "https://registry-1.docker.io"
     harbor_proxy_upstream_name: "docker-hub"
     harbor_proxy_retries: 10
-    harbor_proxy_wait_time: 30
+    harbor_proxy_wait_time: 60
   tasks:
     - name: Set environment facts
       ansible.builtin.set_fact:
@@ -102,20 +102,6 @@
               data:
                 password: "{{ harbor_admin_password | b64encode }}"
 
-        - name: Query cert-manager cluster issuer
-          kubernetes.core.k8s_info:
-            namespace: "{{ rke_harbor_namespace }}"
-            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
-            kind: ClusterIssuer
-            name: "{{ k8s_certmanager_issuer_name }}"
-
-        - name: Query cert-manager cluster issuer
-          kubernetes.core.k8s_info:
-            namespace: "{{ rke_harbor_namespace }}"
-            kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
-            kind: ClusterIssuer
-            name: "{{ k8s_certmanager_issuer_name }}"
-
         - name: Create Harbor TLS certificate
           kubernetes.core.k8s:
             namespace: "{{ rke_harbor_namespace }}"
@@ -127,7 +113,6 @@
               metadata:
                 name: "{{ rke_harbor_tls_cert }}"
               spec:
-                commonName: "{{ rke_harbor_hostname }}"
                 dnsNames:
                   - "{{ rke_harbor_hostname }}"
                 secretName: "{{ rke_harbor_tls_secret }}"
@@ -165,30 +150,29 @@
             values:
               existingSecretAdminPassword: "{{ rke_harbor_admin_secret }}"
               existingSecretAdminPasswordKey: password
+              externalURL: "https://{{ rke_harbor_hostname }}"
               expose:
-                type: ingress
+                type: loadBalancer
                 tls:
                   enabled: true
                   certSource: secret
                   secret:
                     secretName: "{{ rke_harbor_tls_secret }}"
-                ingress:
-                  className: nginx-private
-                  hosts:
-                    core: "{{ rke_harbor_hostname }}"
+                  loadBalancer:
+                    name: harbor
 
-        - name: Query Harbor ingress
+        - name: Query Harbor service
           kubernetes.core.k8s_info:
             namespace: "{{ rke_harbor_namespace }}"
             kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
-            kind: Ingress
-            name: harbor-ingress
-          register: harbor_ingress
+            kind: Service
+            name: harbor
+          register: harbor_lb
 
         - name: Set Harbor ingress facts
           ansible.builtin.set_fact:
-            harbor_ingress_host: "{{ harbor_ingress.resources[0].spec.tls[0].hosts[0] }}"
-            harbor_ingress_address: "{{ harbor_ingress.resources[0].status.loadBalancer.ingress[0].ip }}"
+            harbor_ingress_host: "{{ rke_harbor_hostname }}"
+            harbor_ingress_address: "{{ harbor_lb.resources[0].status.loadBalancer.ingress[0].ip }}"
 
         - name: Persist Harbor ingress facts
           ansible.builtin.set_fact:
@@ -196,7 +180,7 @@
               host: "{{ harbor_ingress_host }}"
               address: "{{ harbor_ingress_address }}"
               auth: "{{ harbor_admin_auth }}"
-              proxy: "https://{{ harbor_ingress_host }}/{{ harbor_proxy_project_name }}"
+              proxy: "https://{{ harbor_ingress_host }}/{{ harbor_proxy_project_name }}/"
               cacert: "{{ harbor_tls_cacert }}"
           delegate_to: localhost
           delegate_facts: true
@@ -226,9 +210,9 @@
             status_code: 200
             validate_certs: false
           register: health_result
+          retries: "{{ harbor_proxy_retries }}"
+          delay: "{{ harbor_proxy_wait_time }}"
           until: health_result.status == 200
-          retries: 30
-          delay: 10
 
         - name: Create registry endpoint for Docker Hub
           ansible.builtin.uri:
@@ -246,6 +230,9 @@
             headers:
               Authorization: "{{ harbor_admin_auth }}"
           register: registry_endpoint_result
+          retries: "{{ harbor_proxy_retries }}"
+          delay: "{{ harbor_proxy_wait_time }}"
+          until: registry_endpoint_result is not failed
 
         - name: Get registry ID
           ansible.builtin.uri:
@@ -375,8 +362,6 @@
         docker_config_override:
           registry-mirrors:
             - "{{ harbor_proxy_url }}"
-          insecure_registries:
-            - "{{ harbor_ingress_host }}"
 
     - name: Ensure /etc/docker directory exists
       ansible.builtin.file:
