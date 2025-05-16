@@ -34,29 +34,26 @@ Cluster wide parameters
 
 ## Collection roles
 
-- nephelaiio.rke.rke
 - nephelaiio.rke.k8s
 
 ## Collection playbooks
 
 - nephelaiio.rke.install: Install and (re)configure cluster
 - nephelaiio.rke.k8s: Deploy base K8s services
-- nephelaiio.rke.restart: Stop mongos cluster services
-- nephelaiio.rke.update: Start mongos cluster services
+- nephelaiio.rke.restart: Stop rke cluster services
+- nephelaiio.rke.update: Start rke cluster services
 
 ## Testing
 
-Please make sure your environment has [docker](https://www.docker.com) installed in order to run role validation tests.
+You can test the collection directly from sources using command `make test`
 
-Role is tested against the following distributions (docker images):
+Role releases are ci/cd tested against the following distributions:
 
 - Ubuntu Noble
 - Ubuntu Jammy
 - Ubuntu Focal
 - Rocky Linux 9
 - Alma Linux 9
-
-You can test the collection directly from sources using command `make test`
 
 ## License
 
