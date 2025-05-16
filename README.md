@@ -56,4 +56,4 @@ Role releases are ci/cd tested against the following distributions:
 
 ## License
 
-This project is licensed under the terms of the [MIT License](/LICENSE)
+This project is licensed under the terms of the [MIT License](https://opensource.org/license/mit)
