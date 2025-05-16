@@ -49,7 +49,6 @@ You can test the collection directly from sources using command `make test`
 
 Role releases are ci/cd tested against the following distributions:
 
-- Ubuntu Noble
 - Ubuntu Jammy
 - Ubuntu Focal
 - Rocky Linux 9
