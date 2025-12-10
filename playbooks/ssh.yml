@@ -9,7 +9,7 @@
       ansible.builtin.file:
         path: "{{ rke_ssh_key | dirname }}"
         state: directory
-        mode: 0700
+        mode: "u=rwx,go="
 
     - name: Create SSH keypair
       community.crypto.openssh_keypair:

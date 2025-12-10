@@ -44,7 +44,7 @@
           ansible.builtin.copy:
             dest: "{{ k8s_kubeconfig }}"
             content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
-            mode: 0600
+            mode: "u=rw,go="
           changed_when: false
 
         - name: Deploy Registry Helm chart

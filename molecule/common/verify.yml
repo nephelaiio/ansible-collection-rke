@@ -34,14 +34,12 @@
         fail_msg: "Unable to locate kubeconfig file at path {{ rke_state_file }}"
         that: _clusterstate_stat.stat.exists
 
-
 - name: Verify Consul installation
   hosts: rke_control
   any_errors_fatal: true
   vars:
     _consul_service: consul.service
   tasks:
-
     - name: Query service facts
       ansible.builtin.service_facts:
 
@@ -60,7 +58,6 @@
         _online: "enabled"
         _running: "running"
 
-
 - name: Verify Docker install
   hosts: rke
   any_errors_fatal: true
@@ -73,7 +70,6 @@
         that: _service in services
       vars:
         _service: docker.service
-
 
 - name: Verify multipath deactivation
   hosts: rke
@@ -114,7 +110,6 @@
               - _multipath_start is failed
               - _multipath_start.stderr | regex_search('.* ' + _multipath_service + ' is masked.')
             fail_msg: "Got service start error {{ _multipath_start.stderr }}"
-
 
 - name: Verify RKE install
   hosts: rke_control

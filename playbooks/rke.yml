@@ -24,14 +24,14 @@
         state: directory
         path: "{{ _install_root }}"
         owner: "{{ _install_user }}"
-        mode: 0750
+        mode: "u=rwx,g=rx,o="
       become: true
 
     - name: Deploy RKE binary
       ansible.builtin.get_url:
         url: "https://github.com/rancher/rke/releases/download/{{ _rke_release_rke }}/rke_linux-amd64"
         dest: "{{ rke_bin_rke }}"
-        mode: 0755
+        mode: "u=rwx,go=rx"
         owner: root
         group: root
         force: true
@@ -42,7 +42,7 @@
         src: cluster.j2.yml
         dest: "{{ _install_root }}/cluster.yml"
         owner: "{{ _install_user }}"
-        mode: 0600
+        mode: "u=rwx,go="
       vars:
         _keypath: "{{ rke_ssh_key }}"
         _cluster_name: "{{ rke_cluster_name }}"
@@ -168,37 +168,37 @@
       ansible.builtin.copy:
         dest: "{{ rke_install_log }}"
         content: "{{ _install_logs }}"
-        mode: 0600
+        mode: "u=rwx,go="
 
     - name: Archive install logs
       ansible.builtin.copy:
         dest: "{{ rke_install_log }}.{{ ansible_date_time.iso8601_basic_short }}"
         content: "{{ _install_logs }}"
-        mode: 0600
+        mode: "u=rwx,go="
 
     - name: Distribute install kubeconfig
       ansible.builtin.copy:
         dest: "{{ _rke_config_install }}"
         content: "{{ _kubeconfig_install | ansible.builtin.to_nice_yaml(indent=2) }}"
-        mode: 0600
+        mode: "u=rwx,go="
 
     - name: Create kubeconfig user directory
       ansible.builtin.file:
         path: "{{ _rke_config_user | dirname }}"
         state: directory
-        mode: 0750
+        mode: "u=rwx,g=rx,o="
 
     - name: Distribute user kubeconfig
       ansible.builtin.copy:
         dest: "{{ _rke_config_user }}"
         content: "{{ _kubeconfig_user | ansible.builtin.to_nice_yaml(indent=2) }}"
-        mode: 0600
+        mode: "u=rwx,go="
 
     - name: Distribute cluster state
       ansible.builtin.copy:
         dest: "{{ rke_state_file }}"
         content: "{{ _clusterstate_content }}"
-        mode: 0600
+        mode: "u=rwx,go="
 
     - name: Wait for cluster startup
       ansible.builtin.command:

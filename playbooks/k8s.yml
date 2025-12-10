@@ -54,7 +54,7 @@
           ansible.builtin.copy:
             dest: "{{ k8s_kubeconfig }}"
             content: "{{ _kubeconfig_slurp['content'] | b64decode }}"
-            mode: 0600
+            mode: "u=rw,go="
 
         - name: Deploy k8s with private iprange
           ansible.builtin.include_role:
