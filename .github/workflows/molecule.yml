@@ -34,7 +34,7 @@ jobs:
           run: |
             make requirements test \
               MOLECULE_SCENARIO=${{ matrix.scenario }} \
-              MOLECULE_KVM_IMAGE=${{ matrix.image.url }}
+              MOLECULE_KVM_IMAGE=${{ matrix.image }}
               GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Upload install logs
