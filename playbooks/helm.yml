@@ -17,7 +17,6 @@
       ansible.builtin.set_fact:
         helm_version: "{{ rke_helm_version | default(_helm_release_query.tag) }}"
 
-
 - name: Prepare RKE cluster members
   hosts: "{{ rke_control_group }}:{{ rke_localgroup | default('localhost') }}"
   become: "{{ ansible_os_family != 'Darwin' }}"

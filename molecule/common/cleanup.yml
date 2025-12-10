@@ -71,8 +71,8 @@
           ansible.builtin.find:
             path: /opt/rke
             patterns:
-              - 'install.log'
-              - 'install.log.*'
+              - "install.log"
+              - "install.log.*"
           register: _rke_installlog_files
 
         - name: Archive install log
