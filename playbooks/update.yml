@@ -28,7 +28,7 @@
           ansible.builtin.copy:
             dest: "{{ _kubeconfig_path }}"
             content: "{{ _kubeconfig_content }}"
-            mode: 0600
+            mode: "u=rw,go="
 
     - name: Query cluster nodes
       kubernetes.core.k8s_info:
@@ -128,7 +128,7 @@
           ansible.builtin.copy:
             dest: "{{ _kubeconfig_path }}"
             content: "{{ _kubeconfig_content }}"
-            mode: 0600
+            mode: "u=rw,go="
 
     - name: Cordon cluster node
       block:
